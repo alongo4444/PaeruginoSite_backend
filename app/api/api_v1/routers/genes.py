@@ -14,7 +14,7 @@ genes_router = r = APIRouter()
     #response_model=t.List[GeneBase],
     response_model_exclude_none=True,
 )
-async def users_list(
+async def genes_list(
         response: Response,
         db=Depends(get_db)
 ):
