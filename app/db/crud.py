@@ -110,7 +110,7 @@ def get_genes(db: Session):
                                                            'protein_sequence'
                                                            ])
     print(df_from_records.head(5))
-    return df_from_records.to_csv()
+    return df_from_records.to_dict('records')
     #query = "select * from Genes"
     # df = pd.read_sql(models.Genes, db.bind)
     # df = pd.DataFrame(db.query(models.Genes).all())
