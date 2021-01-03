@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends
 from starlette.requests import Request
+from fastapi.middleware.cors import CORSMiddleware;
 import uvicorn
 
 from app.api.api_v1.routers.users import users_router
@@ -18,6 +19,13 @@ app = FastAPI(
     title=config.PROJECT_NAME, docs_url="/api/docs", openapi_url="/api"
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 @app.middleware("http")
 async def db_session_middleware(request: Request, call_next):
@@ -53,4 +61,4 @@ app.include_router(auth_router, prefix="/api", tags=["auth"])
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", reload=True, port=8800)
+    uvicorn.run("main:app", host="127.0.0.1", reload=True, port=8801)
