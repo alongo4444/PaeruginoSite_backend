@@ -6,11 +6,14 @@ import uvicorn
 from app.api.api_v1.routers.genes import genes_router
 from app.api.api_v1.routers.strains import strains_router
 
-# from app.api.api_v1.routers.auth import auth_router
 from app.core import config
 from app.db.session import SessionLocal
 from app.core.celery_app import celery_app
 from app import tasks
+from app.api.api_v1.routers.users import users_router
+from app.api.api_v1.routers.auth import auth_router
+from app.core.auth import get_current_active_user
+
 
 app = FastAPI(
     title=config.PROJECT_NAME, docs_url="/api/docs", openapi_url="/api"
@@ -51,7 +54,14 @@ async def example_task(request):
 
 
 # Routers
-
+# Routers
+app.include_router(
+    users_router,
+    prefix="/api/v1",
+    tags=["users"],
+    dependencies=[Depends(get_current_active_user)],
+)
+app.include_router(auth_router, prefix="/api", tags=["auth"])
 app.include_router(genes_router, prefix="/api/v1", tags=["genes"])
 app.include_router(strains_router, prefix="/api/v1", tags=["strains"])
 

@@ -4,7 +4,7 @@ from app.db.session import get_db
 from app.db.crud import (
     get_genes,
 )
-from app.db.schemas import StrainBase
+from app.db.schemas import GeneBase
 
 genes_router = r = APIRouter()
 
