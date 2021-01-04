@@ -3,6 +3,7 @@ from starlette.requests import Request
 import uvicorn
 
 from app.api.api_v1.routers.genes import genes_router
+from app.api.api_v1.routers.strains import strains_router
 
 # from app.api.api_v1.routers.auth import auth_router
 from app.core import config
@@ -33,6 +34,8 @@ async def example_task(request):
 # Routers
 
 app.include_router(genes_router, prefix="/api/v1", tags=["genes"])
+app.include_router(strains_router, prefix="/api/v1", tags=["strains"])
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", reload=True, port=8880)

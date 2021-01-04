@@ -2,16 +2,17 @@ from pydantic import BaseModel
 import typing as t
 from decimal import *
 
+
 class GeneBase(BaseModel):
     locus_tag: str
-    #attributes_x: str
-    #chromosome_y: str
+    # attributes_x: str
+    # chromosome_y: str
     genomic_accession_y: str
     start_y: int
     end_y: int
     strand_y: str
     product_accession_y: str
-    #non_redundant_refseq_y: str
+    # non_redundant_refseq_y: str
     name_y: str
     symbol_y: str
     geneID_y: int
@@ -20,37 +21,9 @@ class GeneBase(BaseModel):
     protein_sequence: str
 
 
-class UserBase(BaseModel):
-    email: str
-    is_active: bool = True
-    is_superuser: bool = False
-    first_name: str = None
-    last_name: str = None
-
-
-class UserOut(UserBase):
-    pass
-
-
-class UserCreate(UserBase):
-    password: str
-
-    class Config:
-        orm_mode = True
-
-
-class UserEdit(UserBase):
-    password: t.Optional[str] = None
-
-    class Config:
-        orm_mode = True
-
-
-class User(UserBase):
-    id: int
-
-    class Config:
-        orm_mode = True
+class StrainBase(BaseModel):
+    Assembly: str
+    Strain: str
 
 
 class Token(BaseModel):

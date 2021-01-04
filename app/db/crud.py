@@ -57,3 +57,24 @@ def get_genes(db: Session):
     # print(df.head(5))
     #return db.query(models.Genes).all()
     # return db.query(models.Genes).all()
+
+
+def get_strains(db: Session):
+    # Defining the SQLAlchemy-query
+    strains_query = db.query(models.Genes).with_entities(models.Strains.Assembly,
+                                                       models.Strains.Strain, )
+
+    # Getting all the entries via SQLAlchemy
+    all_strains= strains_query.all()
+
+    # We provide also the (alternate) column names and set the index here,
+    # renaming the column `id` to `currency__id`
+    df_from_records = pd.DataFrame.from_records(all_strains
+                                                , index='Assembly'
+                                                , columns=['Assembly',
+                                                           'Strain',
+                                                           ])
+    print(df_from_records.head(5))
+    return df_from_records.to_csv()
+
+
