@@ -22,7 +22,8 @@ users_router = r = APIRouter()
 )
 async def users_list(
     response: Response,
-    db=Depends(get_db)
+    db=Depends(get_db),
+    current_user=Depends(get_current_active_superuser),
 ):
     """
     Get all users
