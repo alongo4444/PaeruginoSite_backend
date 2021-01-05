@@ -8,11 +8,6 @@ from . import models, schemas
 from app.core.security import get_password_hash
 
 
-def get_table_names(db: Session):
-    my_query = "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'"
-    results = db.execute(my_query).fetchall()
-    print(results)
-
 
 def get_user(db: Session, user_id: int):
     user = db.query(models.User).filter(models.User.id == user_id).first()
@@ -25,7 +20,9 @@ def get_user_by_email(db: Session, email: str) -> schemas.UserBase:
     return db.query(models.User).filter(models.User.email == email).first()
 
 
-def get_users(db: Session, skip: int = 0, limit: int = 100) -> t.List[schemas.UserOut]:
+def get_users(
+    db: Session, skip: int = 0, limit: int = 100
+) -> t.List[schemas.UserOut]:
     return db.query(models.User).offset(skip).limit(limit).all()
 
 
@@ -55,7 +52,7 @@ def delete_user(db: Session, user_id: int):
 
 
 def edit_user(
-        db: Session, user_id: int, user: schemas.UserEdit
+    db: Session, user_id: int, user: schemas.UserEdit
 ) -> schemas.User:
     db_user = get_user(db, user_id)
     if not db_user:
@@ -73,6 +70,12 @@ def edit_user(
     db.commit()
     db.refresh(db_user)
     return db_user
+
+def get_table_names(db: Session):
+    my_query = "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'"
+    results = db.execute(my_query).fetchall()
+    print(results)
+
 
 
 def get_genes(db: Session):
@@ -121,3 +124,24 @@ def get_genes(db: Session):
     # print(df.head(5))
     #return db.query(models.Genes).all()
     # return db.query(models.Genes).all()
+
+
+def get_strains(db: Session):
+    # Defining the SQLAlchemy-query
+    strains_query = db.query(models.Genes).with_entities(models.Strains.Assembly,
+                                                       models.Strains.Strain, )
+
+    # Getting all the entries via SQLAlchemy
+    all_strains= strains_query.all()
+
+    # We provide also the (alternate) column names and set the index here,
+    # renaming the column `id` to `currency__id`
+    df_from_records = pd.DataFrame.from_records(all_strains
+                                                , index='Assembly'
+                                                , columns=['Assembly',
+                                                           'Strain',
+                                                           ])
+    print(df_from_records.head(5))
+    return df_from_records.to_csv()
+
+
