@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 import pandas as pd
 import typing as t
 
+
 from . import models, schemas
 from app.core.security import get_password_hash
 
@@ -109,7 +110,10 @@ def get_genes(db: Session):
                                                            'dna_sequence',
                                                            'protein_sequence'
                                                            ])
+    df_from_records['locus_tag_copy'] = df_from_records.index
+    # return FileResponse("../road-sign-361513_960_720.jpg")
     print(df_from_records.head(5))
+
     return df_from_records.to_dict('records')
     #query = "select * from Genes"
     # df = pd.read_sql(models.Genes, db.bind)
