@@ -2,6 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 import pandas as pd
 import typing as t
+import json
 
 
 from . import models, schemas
@@ -142,6 +143,11 @@ def get_strains(db: Session):
                                                            'Strain',
                                                            ])
     print(df_from_records.head(5))
-    return df_from_records.to_csv()
+    df_from_records['assembly_copy'] = df_from_records.index
+    result = df_from_records.to_json(orient="records")
+    parsed = json.loads(result)
+    json.dumps(parsed, indent=4)
+    return parsed
+    #return df_from_records.to_csv()
 
 
