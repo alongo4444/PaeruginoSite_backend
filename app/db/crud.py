@@ -142,8 +142,9 @@ def get_strains(db: Session):
                                                 , columns=['Assembly',
                                                            'Strain',
                                                            ])
+    df_from_records = df_from_records.rename(columns={"Strain": "name"})
     print(df_from_records.head(5))
-    df_from_records['assembly_copy'] = df_from_records.index
+    df_from_records['key'] = df_from_records.index
     result = df_from_records.to_json(orient="records")
     parsed = json.loads(result)
     json.dumps(parsed, indent=4)
