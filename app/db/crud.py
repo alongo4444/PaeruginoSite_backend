@@ -2,6 +2,10 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 import pandas as pd
 import typing as t
+import json
+import io
+
+from starlette.responses import StreamingResponse
 
 from . import models, schemas
 from app.core.security import get_password_hash
@@ -75,6 +79,56 @@ def get_table_names(db: Session):
     results = db.execute(my_query).fetchall()
     print(results)
 
+def test(db: Session):
+    # Defining the SQLAlchemy-query
+    genes_query = db.query(models.Genes).with_entities(models.Genes.locus_tag,
+                                                       models.Genes.genomic_accession_y,
+                                                       models.Genes.start_y,
+                                                       models.Genes.end_y,
+                                                       models.Genes.strand_y,
+                                                       models.Genes.product_accession_y,
+                                                       models.Genes.name_y,
+                                                       models.Genes.symbol_y,
+                                                       models.Genes.geneID_y,
+                                                       models.Genes.product_length_y,
+                                                       models.Genes.dna_sequence,
+                                                       models.Genes.protein_sequence, )
+
+    # Getting all the entries via SQLAlchemy
+    all_genes = genes_query.all()
+
+    # We provide also the (alternate) column names and set the index here,
+    # renaming the column `id` to `currency__id`
+    df_from_records = pd.DataFrame.from_records(all_genes
+                                                , index='locus_tag'
+                                                , columns=['locus_tag',
+                                                           'genomic_accession_y',
+                                                           'start_y',
+                                                           'end_y',
+                                                           'strand_y',
+                                                           'product_accession_y',
+                                                           'name_y',
+                                                           'symbol_y',
+                                                           'geneID_y',
+                                                           'product_length_y',
+                                                           'dna_sequence',
+                                                           'protein_sequence'
+                                                           ])
+    df_from_records['locus_tag_copy'] = df_from_records.index
+    # return FileResponse("../road-sign-361513_960_720.jpg")
+    print(df_from_records.head(5))
+
+    stream = io.StringIO()
+
+    df_from_records.to_csv(stream, index=False)
+
+    response = StreamingResponse(iter([stream.getvalue()]),
+                                 media_type="text/csv"
+                                 )
+
+    response.headers["Content-Disposition"] = "attachment; filename=export.csv"
+
+    return response
 
 
 def get_genes(db: Session):
@@ -112,7 +166,10 @@ def get_genes(db: Session):
                                                            'dna_sequence',
                                                            'protein_sequence'
                                                            ])
+    df_from_records['locus_tag_copy'] = df_from_records.index
+    # return FileResponse("../road-sign-361513_960_720.jpg")
     print(df_from_records.head(5))
+
     return df_from_records.to_dict('records')
     #query = "select * from Genes"
     # df = pd.read_sql(models.Genes, db.bind)
@@ -137,7 +194,13 @@ def get_strains(db: Session):
                                                 , columns=['Assembly',
                                                            'Strain',
                                                            ])
+    df_from_records = df_from_records.rename(columns={"Strain": "name"})
     print(df_from_records.head(5))
-    return df_from_records.to_csv()
+    df_from_records['key'] = df_from_records.index
+    result = df_from_records.to_json(orient="records")
+    parsed = json.loads(result)
+    json.dumps(parsed, indent=4)
+    return parsed
+    #return df_from_records.to_csv()
 
 
