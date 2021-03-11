@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Request, Depends, Response, encoders
-import typing as t
+from fastapi import APIRouter, Query, Request, Depends, Response, encoders
+from typing import List, Optional
 from app.db.session import get_db
 from app.db.crud import (
     get_genes,test
@@ -7,7 +7,6 @@ from app.db.crud import (
 from app.db.schemas import GeneBase
 
 genes_router = r = APIRouter()
-
 
 @r.get(
     "/genes",
@@ -29,12 +28,14 @@ async def genes_list(
     #response_model=t.List[GeneBase],
     response_model_exclude_none=True,
 )
-async def genes_list(
+async def test_genes_list(
         response: Response,
-        db=Depends(get_db)
+        db=Depends(get_db),
+        q: List[str] = Query(None)
 ):
     """Get all genes"""
-    genes = test(db)
+    print("a")
+    genes = test(db,q)
     # This is necessary for react-admin to work
     # response.headers["Content-Range"] = f"0-9/{len(users)}"
     return genes
