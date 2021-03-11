@@ -1,17 +1,17 @@
 from fastapi import APIRouter, Request, Depends, Response, encoders
 import subprocess, os
 from fastapi.responses import FileResponse
+from fastapi.responses import HTMLResponse
 from app.db.session import get_db
 from app.db.crud import (
     get_strains,
 )
-
+from pathlib import Path
 from PIL import Image
 
 from app.db.schemas import StrainBase
 
 strains_router = r = APIRouter()
-
 
 @r.get(
     "/strains",
@@ -63,3 +63,20 @@ async def strains_list(
 
         return False
     return False
+
+@r.get(
+    "/strains/strainCircos/{strain_name}",
+    response_model_exclude_none=True,
+    response_class=FileResponse,
+    status_code=200,
+)
+async def strain_circos_graph(strain_name, response: Response):
+    # the structure of the dir file will be stain_name.html and it will be stored in a specific directory.
+    strain_file = Path("static/"+strain_name+".html")
+    print(strain_file)
+    if strain_file.is_file():
+        return FileResponse(strain_file, status_code=200)
+    else:
+        # file is not in the directory (the strain name is wrong)
+        return Response(status_code=400)
+
