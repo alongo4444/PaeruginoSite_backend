@@ -79,7 +79,7 @@ def get_table_names(db: Session):
     results = db.execute(my_query).fetchall()
     print(results)
 
-def test(db: Session):
+def test(db: Session,q):
     # Defining the SQLAlchemy-query
     genes_query = db.query(models.Genes).with_entities(models.Genes.locus_tag,
                                                        models.Genes.genomic_accession_y,
@@ -117,6 +117,7 @@ def test(db: Session):
     df_from_records['locus_tag_copy'] = df_from_records.index
     # return FileResponse("../road-sign-361513_960_720.jpg")
     print(df_from_records.head(5))
+    print(q)
 
     stream = io.StringIO()
 
