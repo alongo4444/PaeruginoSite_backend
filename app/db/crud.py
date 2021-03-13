@@ -205,3 +205,33 @@ def get_strains(db: Session):
     #return df_from_records.to_csv()
 
 
+def get_cluster(db: Session,strain_name):
+    my_query = "SELECT * FROM cluster WHERE (PA14 LIKE '%{}%') OR (PAO1 LIKE '%{}%')".format(strain_name,strain_name)
+    results = db.execute(my_query).fetchall()
+    # data_cluster = pd.DataFrame(columns=['index','function','PA14','PAO1','Other','virulence','virulenecCount',
+    #                                      'crisprTarget','maxlength','meanLength','std','members','numOfStrains',
+    #                                      '0','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15',
+    #                                      '16','17','18','19','20','21','22','23','24','25','26','27','28,''29',
+    #                                      '30','31','32','33','34','35','36','37','38','39','40','41','42','43',
+    #                                      '44','45','46','47','48','49','50','51','L0','L1','L2','L3','L4','L5',
+    #                                      'L6','L7','L8','L9','L10','L11','L12','L13','L14','L15','L16','L17',
+    #                                      'L18','L19','L20','L21','L22','L23','L24','L25','L26','L27','L28',
+    #                                      'L29','L30','L31','L32','L33','L34','L35','L36','L37','L38','L39',
+    #                                      'L40','L41','L42','L43','L44','L45','L46','L47','L48','L49','L50','L51',
+    #                                      'MW1','MW2','T-test1','T-test2','ROC','LR','Slope','log MW','log T-test',
+    #                                      'log LR','mean VW','mean VWO','logMW','logLR','count logMW','count logLR',
+    #                                      'P-val logMW','pval logLR','X5','X40','X51','X28','X2','X17','X48','X16',
+    #                                      'X4','X43','X41','X45','X31','X12','X1','X13','X20','X37',
+    #                                      'X8','X32','X29','X38','X9','X3','X6','X25','X30','X44','X14',
+    #                                      'X36','X33','X23','X42','X49','X46','X19','X52','X11','X27','X21',
+    #                                      'X24','X39','X10','X15','X47','X7','X50','X26', 'X34','X22','X35','X18',
+    #                                      'Abi', 'BREX','DISARM','CRISPR','DISARMassociated','DND','RM','TA',
+    #                                      'Wadjet', 'Zorya','Hachiman','Lamassu','Septu','Thoeris','Gabija','Druantia'])
+
+    row = results[0]
+    row = dict(zip(row.keys(), row))
+    for i in range(52):
+        row[str(i)] = row['i'+str(i)]
+        del row['i'+str(i)]
+    K =5
+    print(results)

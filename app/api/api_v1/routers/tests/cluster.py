@@ -6,21 +6,19 @@ from app.db.crud import (
 )
 from app.db.schemas import GeneBase
 
-genes_router = r = APIRouter()
+cluster_router = r = APIRouter()
 
 @r.get(
-    "/genes",
+    "/cluster/{gene_id}",
     #response_model=t.List[GeneBase],
     response_model_exclude_none=True,
 )
-async def genes_list(
+async def cluster_tree(
         response: Response,
         db=Depends(get_db)
 ):
     """Get all genes"""
     genes = get_genes(db)
-    # This is necessary for react-admin to work
-    # response.headers["Content-Range"] = f"0-9/{len(users)}"
     return genes
 
 @r.get(
