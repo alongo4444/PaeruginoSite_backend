@@ -112,7 +112,10 @@ def get_genes(db: Session):
                                                            'dna_sequence',
                                                            'protein_sequence'
                                                            ])
+    df_from_records['locus_tag_copy'] = df_from_records.index
+    # return FileResponse("../road-sign-361513_960_720.jpg")
     print(df_from_records.head(5))
+
     return df_from_records.to_dict('records')
     #query = "select * from Genes"
     # df = pd.read_sql(models.Genes, db.bind)
@@ -122,8 +125,11 @@ def get_genes(db: Session):
     # return db.query(models.Genes).all()
 
 
-def get_strains(db: Session):
     # Defining the SQLAlchemy-query
+def get_strains(db: Session):
+    """
+    this function query the db for all the strains and return dataframe with all the information
+    """
     strains_query = db.query(models.Genes).with_entities(models.Strains.Assembly,
                                                        models.Strains.Strain, )
 

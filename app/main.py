@@ -44,7 +44,6 @@ async def example_task(request):
 
 
 # Routers
-# Routers
 app.include_router(
     users_router,
     prefix="/api/v1",
@@ -52,9 +51,8 @@ app.include_router(
     dependencies=[Depends(get_current_active_user)],
 )
 app.include_router(auth_router, prefix="/api", tags=["auth"])
-app.include_router(genes_router, prefix="/api/v1", tags=["genes"])
-app.include_router(strains_router, prefix="/api/v1", tags=["strains"])
-
+app.include_router(genes_router, prefix="/api/v1/genes", tags=["genes"])
+app.include_router(strains_router, prefix="/api/v1/strains", tags=["strains"])
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1",reload=True,reload_dirs=["./api","./db"], port=8800)
+    uvicorn.run("main:app", host="127.0.0.1",reload=True,reload_dirs=["./api","./db"], port=8801)
