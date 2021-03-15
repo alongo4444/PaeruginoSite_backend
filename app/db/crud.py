@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session ,class_mapper, defer
 import pandas as pd
 import typing as t
 import json
@@ -79,50 +79,41 @@ def get_table_names(db: Session):
     results = db.execute(my_query).fetchall()
     print(results)
 
-def test(db: Session,q):
-    # Defining the SQLAlchemy-query
-    genes_query = db.query(models.Genes).with_entities(models.Genes.locus_tag,
-                                                       models.Genes.genomic_accession_y,
-                                                       models.Genes.start_y,
-                                                       models.Genes.end_y,
-                                                       models.Genes.strand_y,
-                                                       models.Genes.product_accession_y,
-                                                       models.Genes.name_y,
-                                                       models.Genes.symbol_y,
-                                                       models.Genes.geneID_y,
-                                                       models.Genes.product_length_y,
-                                                       models.Genes.dna_sequence,
-                                                       models.Genes.protein_sequence, )
+def defer_everything_but(entity, cols):
+    m = class_mapper(entity)
+    return [defer(k) for k in
+            set(p.key for p
+                in m.iterate_properties
+                if hasattr(p, 'columns')).difference(cols)]
 
-    # Getting all the entries via SQLAlchemy
-    all_genes = genes_query.all()
+    # s = Session()
+    # print s.query(A).options(*defer_everything_but(A, ["q", "p"]))
 
-    # We provide also the (alternate) column names and set the index here,
-    # renaming the column `id` to `currency__id`
-    df_from_records = pd.DataFrame.from_records(all_genes
-                                                , index='locus_tag'
-                                                , columns=['locus_tag',
-                                                           'genomic_accession_y',
-                                                           'start_y',
-                                                           'end_y',
-                                                           'strand_y',
-                                                           'product_accession_y',
-                                                           'name_y',
-                                                           'symbol_y',
-                                                           'geneID_y',
-                                                           'product_length_y',
-                                                           'dna_sequence',
-                                                           'protein_sequence'
-                                                           ])
-    df_from_records['locus_tag_copy'] = df_from_records.index
-    # return FileResponse("../road-sign-361513_960_720.jpg")
-    print(df_from_records.head(5))
-    print(q)
+# prepares the "where" query for the get_genes_download function, to select only the genes from the desired strains
+def selectedAS_to_query(selectedAS):
+    ret = 'assembly_x='
+    for idx,s in enumerate(selectedAS):
+        if idx == 0:
+            ret = ret + "'{}'".format(s)
+        else:
+            ret = ret + " OR assembly_x='{}'".format(s)
+    return ret
+
+def get_genes_download(db: Session, selectedC, selectedAS):
+
+    cols = ','.join(selectedC)
+
+    rows_q=selectedAS_to_query(selectedAS)
+
+    my_query = "SELECT {} FROM pao1_data WHERE {}".format(cols,rows_q) # Need to change the FROM TABLE to the total genes table eventually
+    results = db.execute(my_query).fetchall()
+    df_from_records = pd.DataFrame(results, columns=selectedC)
 
     stream = io.StringIO()
 
     df_from_records.to_csv(stream, index=False)
 
+    #Returns a csv prepared to be downloaded in the FrontEnd
     response = StreamingResponse(iter([stream.getvalue()]),
                                  media_type="text/csv"
                                  )
