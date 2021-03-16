@@ -173,8 +173,8 @@ def get_genes(db: Session):
 
 def get_strains(db: Session):
     # Defining the SQLAlchemy-query
-    strains_query = db.query(models.Genes).with_entities(models.Strains.Assembly,
-                                                       models.Strains.Strain, )
+    strains_query = db.query(models.Genes).with_entities(models.Strains.assembly_accession_x,
+                                                       models.Strains.strain, )
 
     # Getting all the entries via SQLAlchemy
     all_strains= strains_query.all()
@@ -182,11 +182,11 @@ def get_strains(db: Session):
     # We provide also the (alternate) column names and set the index here,
     # renaming the column `id` to `currency__id`
     df_from_records = pd.DataFrame.from_records(all_strains
-                                                , index='Assembly'
-                                                , columns=['Assembly',
-                                                           'Strain',
+                                                , index='assembly_accession_x'
+                                                , columns=['assembly_accession_x',
+                                                           'strain',
                                                            ])
-    df_from_records = df_from_records.rename(columns={"Strain": "name"})
+    df_from_records = df_from_records.rename(columns={"strain": "name"})
     print(df_from_records.head(5))
     df_from_records['key'] = df_from_records.index
     result = df_from_records.to_json(orient="records")
