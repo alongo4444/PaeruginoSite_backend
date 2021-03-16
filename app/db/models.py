@@ -98,5 +98,5 @@ class Cluster(Base):
 class Strains(Base):
     __tablename__ = "Strains"
 
-    Assembly = Column("Assembly", Text, primary_key=True, index=True, nullable=False)
-    Strain = Column("Strain", Text)
+    assembly = Column("assembly", Text, primary_key=True, index=True, nullable=False)
+    strain = Column("strain", Text)

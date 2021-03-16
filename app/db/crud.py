@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session ,class_mapper, defer
+from sqlalchemy.orm import Session,class_mapper, defer
 import pandas as pd
 import typing as t
 import json
@@ -173,8 +173,8 @@ def get_genes(db: Session):
 
 def get_strains(db: Session):
     # Defining the SQLAlchemy-query
-    strains_query = db.query(models.Genes).with_entities(models.Strains.Assembly,
-                                                       models.Strains.Strain, )
+    strains_query = db.query(models.Genes).with_entities(models.Strains.assembly,
+                                                       models.Strains.strain, )
 
     # Getting all the entries via SQLAlchemy
     all_strains= strains_query.all()
@@ -197,7 +197,7 @@ def get_strains(db: Session):
 
 
 def get_strains_cluster(db: Session,gene_name):
-    my_query = "SELECT combined_index FROM cluster WHERE (PA14 LIKE '%{}%') OR (PAO1 LIKE '%{}%')".format(gene_name,gene_name)
+    my_query = "SELECT combined_index FROM \"Cluster\" WHERE (PA14 LIKE '%{}%') OR (PAO1 LIKE '%{}%')".format(gene_name,gene_name)
     results = db.execute(my_query).fetchall()
 
     result = results[0]

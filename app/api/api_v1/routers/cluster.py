@@ -2,7 +2,7 @@ from fastapi import APIRouter, Query, Request, Depends, Response, encoders
 from typing import List, Optional
 from app.db.session import get_db
 from app.db.crud import (
-    get_genes, test, get_strains_cluster
+    get_genes, get_strains_cluster
 )
 from app.db.schemas import GeneBase
 
