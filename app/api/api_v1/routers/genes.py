@@ -35,7 +35,6 @@ async def test_genes_list(
         selectedAS: List[str] = Query(None)
 ):
     """Get all genes"""
-    print("a")
     genes = get_genes_download(db, selectedC, selectedAS)
     # This is necessary for react-admin to work
     # response.headers["Content-Range"] = f"0-9/{len(users)}"
