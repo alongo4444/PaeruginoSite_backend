@@ -205,8 +205,10 @@ def get_strains(db: Session):
     #return df_from_records.to_csv()
 
 
-def get_cluster(db: Session,strain_name):
-    my_query = "SELECT combined_index FROM cluster WHERE (PA14 LIKE '%{}%') OR (PAO1 LIKE '%{}%')".format(strain_name,strain_name)
+def get_strains_cluster(db: Session,gene_name):
+    my_query = "SELECT combined_index FROM cluster WHERE (PA14 LIKE '%{}%') OR (PAO1 LIKE '%{}%')".format(gene_name,gene_name)
     results = db.execute(my_query).fetchall()
+
     result = results[0]
+
     return result
