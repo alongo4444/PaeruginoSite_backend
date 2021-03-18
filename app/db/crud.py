@@ -1,11 +1,12 @@
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session ,class_mapper, defer
+from sqlalchemy.orm import Session,class_mapper, defer
 import pandas as pd
 import typing as t
 import json
 import io
 
 from starlette.responses import StreamingResponse
+
 
 from . import models, schemas
 from app.core.security import get_password_hash
@@ -196,3 +197,10 @@ def get_strains(db: Session):
     #return df_from_records.to_csv()
 
 
+def get_strains_cluster(db: Session,gene_name):
+    my_query = "SELECT index,combined_index FROM \"Cluster\" WHERE (PA14 LIKE '%{}%') OR (PAO1 LIKE '%{}%')".format(gene_name,gene_name)
+    results = db.execute(my_query).fetchall()
+
+    result = results[0]
+
+    return result

@@ -2,3 +2,4 @@
 /venv/
 /app/core
 /app/static
+/app/db/session.py

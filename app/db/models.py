@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, Text, Numeric
+from sqlalchemy import Boolean, Column, Integer, String, Text, Numeric, VARCHAR
 
 from .session import Base
 
@@ -37,5 +37,6 @@ class Genes(Base):
 class Strains(Base):
     __tablename__ = "Strains"
 
-    assembly_accession_x = Column("assembly_accession_x", Text, primary_key=True, index=True, nullable=False)
+    assembly = Column("assembly", Text, primary_key=True, index=True, nullable=False)
     strain = Column("strain", Text)
+    assembly_accession_x = Column("assembly_accession_x", Text)
