@@ -197,7 +197,7 @@ def get_strains(db: Session):
 
 
 def get_strains_cluster(db: Session,gene_name):
-    my_query = "SELECT combined_index FROM \"Cluster\" WHERE (PA14 LIKE '%{}%') OR (PAO1 LIKE '%{}%')".format(gene_name,gene_name)
+    my_query = "SELECT index,combined_index FROM \"Cluster\" WHERE (PA14 LIKE '%{}%') OR (PAO1 LIKE '%{}%')".format(gene_name,gene_name)
     results = db.execute(my_query).fetchall()
 
     result = results[0]
