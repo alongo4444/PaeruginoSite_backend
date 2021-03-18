@@ -36,7 +36,7 @@ class Genes(Base):
 
 class Strains(Base):
     __tablename__ = "Strains"
-
-    assembly = Column("assembly", Text, primary_key=True, index=True, nullable=False)
+    index = Column("index", Text, primary_key=True, index=True, nullable=False)
+    assembly = Column("assembly", Text)
     strain = Column("strain", Text)
     assembly_accession_x = Column("assembly_accession_x", Text)
