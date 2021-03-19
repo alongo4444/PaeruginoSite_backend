@@ -53,7 +53,7 @@ app.include_router(
 )
 app.include_router(auth_router, prefix="/api", tags=["auth"])
 app.include_router(genes_router, prefix="/api/v1/genes", tags=["genes"])
-app.include_router(strains_router, prefix="/api/v1/strains", tags=["strains"])app.include_router(cluster_router, prefix="/api/v1", tags=["cluster"])
+app.include_router(strains_router, prefix="/api/v1/strains", tags=["strains"])
 app.include_router(cluster_router, prefix="/api/v1/cluster", tags=["cluster"])
 
 if __name__ == "__main__":

@@ -1,7 +1,5 @@
 # Project exclude paths
 /app/core
-/app/static
-/app/db/session.py
 /venv/
 /app/core/__init__.py
 /app/core/auth.py
