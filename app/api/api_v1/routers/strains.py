@@ -4,7 +4,7 @@ import pandas as pd
 from fastapi.responses import FileResponse,HTMLResponse
 from app.db.session import get_db
 from app.db.crud import (
-    get_strains,
+    get_strains
 )
 import numpy as np
 from pathlib import Path
@@ -87,9 +87,9 @@ async def phylogenetic_tree(
         strains = get_strains(db)
         strains['Defense_sys'] = np.random.choice(def_sys, strains.shape[
             0])  # todo remove when defense systems are uploaded to db
-        strains = strains[['Index', 'Strain', 'Defense_sys']]
+        strains = strains[['index', 'strain', 'Defense_sys']]
         if len(subtree) > 0:
-            strains = strains.loc[strains['Index'].isin(subtree)]
+            strains = strains.loc[strains['index'].isin(subtree)]
             systems = strains.loc[strains['Defense_sys'].isin(systems)]['Defense_sys'].unique().tolist() if len(
                 systems) > 0 else []
         strains = pd.get_dummies(strains, columns=["Defense_sys"])
@@ -125,15 +125,19 @@ async def phylogenetic_tree(
                                       geom_fruit(
                                         data=dat1,
                                         geom=geom_bar,
-                                        mapping=aes(y=Index,x=Defense_sys_""" + sys + """, colour=c('""" + color + """')),
+                                        mapping=aes(y=index,x=Defense_sys_""" + sys + """, colour=c('""" + color + """')),
                                         orientation="y",
                                         width=1,
                                         pwidth=0.05,
                                         stat="identity",
                                         fill='""" + color + """'
                                       ) + theme(
+                                      
                                         legend.text = element_text(size = 100),
-                                        legend.title = element_text(size=100)
+                                        legend.title = element_blank(),
+                                        legend.margin=margin(c(0,200,0,0)),
+                                        legend.spacing = unit(2,"cm"),
+                                        legend.spacing.x = unit(2,"cm")
                                       )+
                                         scale_colour_manual(values = c('""" + color + """'), labels = c('""" + sys + """'))
                                       """
@@ -142,7 +146,7 @@ async def phylogenetic_tree(
                                       geom_fruit(
                                         data=dat1,
                                         geom=geom_bar,
-                                        mapping=aes(y=Index,x=Defense_sys_""" + sys + """, colour=c('""" + color + """')),
+                                        mapping=aes(y=index,x=Defense_sys_""" + sys + """, colour=c('""" + color + """')),
                                         orientation="y",
                                         width=1,
                                         pwidth=0.05,
