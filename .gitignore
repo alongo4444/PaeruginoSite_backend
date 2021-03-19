@@ -1,3 +1,7 @@
+# Project exclude paths
+/app/core
+/app/static
+/app/db/session.py
 /venv/
 /app/core/__init__.py
 /app/core/auth.py
@@ -10,6 +14,5 @@
 /app/static/def_Sys/phylo_tree.R
 /.idea/inspectionProfiles/profiles_settings.xml
 /.idea/inspectionProfiles/Project_Default.xml
-/Rplots.pdf
 /app/core/security.py
 /.idea/vcs.xml

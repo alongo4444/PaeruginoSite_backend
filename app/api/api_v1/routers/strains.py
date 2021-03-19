@@ -1,16 +1,18 @@
 from fastapi import APIRouter, Request, Depends, Response, encoders, Query
 import subprocess, os
 import pandas as pd
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse,HTMLResponse
 from app.db.session import get_db
 from app.db.crud import (
     get_strains,
 )
 import numpy as np
+from pathlib import Path
 from typing import List, Optional
 from sorting_techniques import pysort
 import hashlib
 import json
+
 
 
 def random_color():
@@ -95,73 +97,73 @@ async def phylogenetic_tree(
 
         # R query build-up
         query = """
-                library(ggtreeExtra)
-                ##library(ggstar)
-                library(ggplot2)
-                library(ggtree)
-                library(treeio)
-                library(ggnewscale)
-                library(ape)
-                trfile <- system.file("extdata","our_tree.tree", package="ggtreeExtra")
-                tree <- read.tree(trfile) """
+                    library(ggtreeExtra)
+                    ##library(ggstar)
+                    library(ggplot2)
+                    library(ggtree)
+                    library(treeio)
+                    library(ggnewscale)
+                    library(ape)
+                    trfile <- system.file("extdata","our_tree.tree", package="ggtreeExtra")
+                    tree <- read.tree(trfile) """
         if len(subtree) > 0:
             query = query + """
-            subtree =c(""" + ",".join('"' + str(x) + '"' for x in subtreeSort) + """)
-            tree <- keep.tip(tree,subtree)
-            """
-        query = query + """
-        p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5) + geom_tiplab()
+                subtree =c(""" + ",".join('"' + str(x) + '"' for x in subtreeSort) + """)
+                tree <- keep.tip(tree,subtree)
                 """
+        query = query + """
+            p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5) + geom_tiplab()
+                    """
         layer = 0
         query = query + """
-         dat1 <- read.csv("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/Defense_sys.csv")
-            """
+             dat1 <- read.csv("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/Defense_sys.csv")
+                """
         for sys in systems:
             color = colors[sys]
             if (layer == 0):
                 query = query + """p <- p + new_scale_fill() +
-                                  geom_fruit(
-                                    data=dat1,
-                                    geom=geom_bar,
-                                    mapping=aes(y=Index,x=Defense_sys_""" + sys + """, colour=c('""" + color + """')),
-                                    orientation="y",
-                                    width=1,
-                                    pwidth=0.05,
-                                    stat="identity",
-                                    fill='""" + color + """'
-                                  ) + theme(
-                                    legend.text = element_text(size = 100),
-                                    legend.title = element_text(size=100)
-                                  )+
-                                    scale_colour_manual(values = c('""" + color + """'), labels = c('""" + sys + """'))
-                                  """
+                                      geom_fruit(
+                                        data=dat1,
+                                        geom=geom_bar,
+                                        mapping=aes(y=Index,x=Defense_sys_""" + sys + """, colour=c('""" + color + """')),
+                                        orientation="y",
+                                        width=1,
+                                        pwidth=0.05,
+                                        stat="identity",
+                                        fill='""" + color + """'
+                                      ) + theme(
+                                        legend.text = element_text(size = 100),
+                                        legend.title = element_text(size=100)
+                                      )+
+                                        scale_colour_manual(values = c('""" + color + """'), labels = c('""" + sys + """'))
+                                      """
             if (layer > 0):
                 query = query + """p <- p + new_scale_colour()+
-                                  geom_fruit(
-                                    data=dat1,
-                                    geom=geom_bar,
-                                    mapping=aes(y=Index,x=Defense_sys_""" + sys + """, colour=c('""" + color + """')),
-                                    orientation="y",
-                                    width=1,
-                                    pwidth=0.05,
-                                    offset=0.01,
-                                    stat="identity",
-                                    fill='""" + color + """'
-                                  ) + theme(
-                                    legend.margin=margin(c(0,200,0,0)),
-                                    legend.text = element_text(size = 100),
-                                    legend.title = element_blank(),
-                                    legend.spacing = unit(2,"cm"),
-                                    legend.spacing.x = unit(2,"cm")
-                                  )+
-                                    scale_colour_manual(values = c('""" + color + """'), labels = c('""" + sys + """'))
-                                  """
+                                      geom_fruit(
+                                        data=dat1,
+                                        geom=geom_bar,
+                                        mapping=aes(y=Index,x=Defense_sys_""" + sys + """, colour=c('""" + color + """')),
+                                        orientation="y",
+                                        width=1,
+                                        pwidth=0.05,
+                                        offset=0.01,
+                                        stat="identity",
+                                        fill='""" + color + """'
+                                      ) + theme(
+                                        legend.margin=margin(c(0,200,0,0)),
+                                        legend.text = element_text(size = 100),
+                                        legend.title = element_blank(),
+                                        legend.spacing = unit(2,"cm"),
+                                        legend.spacing.x = unit(2,"cm")
+                                      )+
+                                        scale_colour_manual(values = c('""" + color + """'), labels = c('""" + sys + """'))
+                                      """
             layer += 1
 
         query = query + """
-        png("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/""" + filename + """.png", units="cm", width=300, height=300, res=100)
-        plot(p)
-        dev.off(0)"""
+            png("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/""" + filename + """.png", units="cm", width=300, height=300, res=100)
+            plot(p)
+            dev.off(0)"""
 
         # for debugging purpose and error tracking
         print(query)
@@ -187,3 +189,20 @@ async def phylogenetic_tree(
         return FileResponse('static/def_Sys/' + filename + ".png")
 
     return False
+
+@r.get(
+    "/strains/strainCircos/{strain_name}",
+    response_model_exclude_none=True,
+    response_class=FileResponse,
+    status_code=200,
+)
+async def strain_circos_graph(strain_name, response: Response):
+    # the structure of the dir file will be stain_name.html and it will be stored in a specific directory.
+    strain_file = Path("static/"+strain_name+".html")
+    print(strain_file)
+    if strain_file.is_file():
+        return FileResponse(strain_file, status_code=200)
+    else:
+        # file is not in the directory (the strain name is wrong)
+        return Response(status_code=400)
+

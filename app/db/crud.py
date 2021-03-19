@@ -1,7 +1,12 @@
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session,class_mapper, defer
 import pandas as pd
 import typing as t
+import json
+import io
+
+from starlette.responses import StreamingResponse
+
 
 from . import models, schemas
 from app.core.security import get_password_hash
@@ -75,6 +80,48 @@ def get_table_names(db: Session):
     results = db.execute(my_query).fetchall()
     print(results)
 
+def defer_everything_but(entity, cols):
+    m = class_mapper(entity)
+    return [defer(k) for k in
+            set(p.key for p
+                in m.iterate_properties
+                if hasattr(p, 'columns')).difference(cols)]
+
+    # s = Session()
+    # print s.query(A).options(*defer_everything_but(A, ["q", "p"]))
+
+# prepares the "where" query for the get_genes_download function, to select only the genes from the desired strains
+def selectedAS_to_query(selectedAS):
+    ret = 'assembly_x='
+    for idx,s in enumerate(selectedAS):
+        if idx == 0:
+            ret = ret + "'{}'".format(s)
+        else:
+            ret = ret + " OR assembly_x='{}'".format(s)
+    return ret
+
+def get_genes_download(db: Session, selectedC, selectedAS):
+
+    cols = ','.join(selectedC)
+
+    rows_q=selectedAS_to_query(selectedAS)
+
+    my_query = "SELECT {} FROM pao1_data WHERE {}".format(cols,rows_q) # Need to change the FROM TABLE to the total genes table eventually
+    results = db.execute(my_query).fetchall()
+    df_from_records = pd.DataFrame(results, columns=selectedC)
+
+    stream = io.StringIO()
+
+    df_from_records.to_csv(stream, index=False)
+
+    #Returns a csv prepared to be downloaded in the FrontEnd
+    response = StreamingResponse(iter([stream.getvalue()]),
+                                 media_type="text/csv"
+                                 )
+
+    response.headers["Content-Disposition"] = "attachment; filename=export.csv"
+
+    return response
 
 
 def get_genes(db: Session):
@@ -114,8 +161,6 @@ def get_genes(db: Session):
                                                            ])
     df_from_records['locus_tag_copy'] = df_from_records.index
     # return FileResponse("../road-sign-361513_960_720.jpg")
-    print(df_from_records.head(5))
-
     return df_from_records.to_dict('records')
     #query = "select * from Genes"
     # df = pd.read_sql(models.Genes, db.bind)
@@ -125,13 +170,10 @@ def get_genes(db: Session):
     # return db.query(models.Genes).all()
 
 
-    # Defining the SQLAlchemy-query
 def get_strains(db: Session):
-    """
-    this function query the db for all the strains and return dataframe with all the information
-    """
-    strains_query = db.query(models.Genes).with_entities(models.Strains.Assembly,
-                                                       models.Strains.Strain, )
+    # Defining the SQLAlchemy-query
+    strains_query = db.query(models.Genes).with_entities(models.Strains.assembly_accession_x,
+                                                       models.Strains.strain, )
 
     # Getting all the entries via SQLAlchemy
     all_strains= strains_query.all()
@@ -143,7 +185,26 @@ def get_strains(db: Session):
                                                 , columns=['Assembly',
                                                            'Strain',
                                                            ])
-    print(df_from_records.head(5))
+    df_from_records = df_from_records.rename(columns={"strain": "name"})
     return df_from_records.to_csv()
+    df_from_records['key'] = df_from_records.index
+    result = df_from_records.to_json(orient="records")
+    parsed = json.loads(result)
+    json.dumps(parsed, indent=4)
+    return parsed
 
 
+def get_strains_cluster(db: Session,gene_name):
+    my_query = "SELECT index,combined_index FROM \"Cluster\" WHERE (PA14 LIKE '%{}%') OR (PAO1 LIKE '%{}%')".format(gene_name,gene_name)
+    results = db.execute(my_query).fetchall()
+
+    result = results[0]
+
+    return result
+
+def get_strain_id_name(db: Session, df_cluster):
+    result = db.query(models.Strains).with_entities(models.Strains.index,models.Strains.strain).all()
+    df_from_records = pd.DataFrame.from_records(result, index='index', columns=['index','strain',])
+    merge_df = pd.merge(df_from_records, df_cluster,how='left', on="index")
+    merge_df = merge_df.fillna(0)
+    return merge_df

@@ -13,6 +13,7 @@ from app import tasks
 from app.api.api_v1.routers.users import users_router
 from app.api.api_v1.routers.auth import auth_router
 from app.core.auth import get_current_active_user
+from app.api.api_v1.routers.cluster import cluster_router
 
 
 app = FastAPI(
@@ -52,7 +53,8 @@ app.include_router(
 )
 app.include_router(auth_router, prefix="/api", tags=["auth"])
 app.include_router(genes_router, prefix="/api/v1/genes", tags=["genes"])
-app.include_router(strains_router, prefix="/api/v1/strains", tags=["strains"])
+app.include_router(strains_router, prefix="/api/v1/strains", tags=["strains"])app.include_router(cluster_router, prefix="/api/v1", tags=["cluster"])
+app.include_router(cluster_router, prefix="/api/v1/cluster", tags=["cluster"])
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1",reload=True,reload_dirs=["./api","./db"], port=8801)
