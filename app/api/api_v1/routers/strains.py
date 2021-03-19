@@ -10,15 +10,38 @@ import numpy as np
 from typing import List, Optional
 from sorting_techniques import pysort
 import hashlib
+import json
+
+
+def random_color():
+    rand = lambda: np.random.randint(100, 255)
+    return '#%02X%02X%02X' % (rand(), rand(), rand())
+
+
+def load_colors():
+    # Opening JSON file colors.json
+    colors_dict = dict()
+    with open("static/def_Sys/colors.json") as f:
+        li = json.load(f)
+        colors = [x['color'] for x in li]
+        names = [x['label'] for x in li]  # note that you use load(), not loads() to read from file
+    for (x, col) in zip(names, colors):
+        colors_dict[x.upper()] = col
+
+    return colors_dict
+
 
 sortObj = pysort.Sorting()
 strains_router = r = APIRouter()
-def_sys = ['Sys1', 'Sys2', 'Sys3', 'Sys4', 'Sys5', 'Sys6']
+colors = load_colors()
+def_sys = ['SHEDU', 'RM', 'PAGOS', 'SEPTU', 'THOERIS', 'WADJET', 'ZORYA', 'ABI', 'BREX', 'CRISPR', 'DISARM', 'DND',
+           'DRUANTIA', 'GABIJA', 'HACHIMAN', 'KIWA', 'LAMASSU']
+
 
 @r.get(
     "/",
     # response_model=t.List[StrainBase],
-    #response_model_exclude_none=True,
+    # response_model_exclude_none=True,
 )
 async def strains_list(
         response: Response,
@@ -33,39 +56,41 @@ async def strains_list(
 
 @r.get(
     "/phyloTree",
-    #response_model_exclude_none=True,
+    # response_model_exclude_none=True,
 )
 async def phylogenetic_tree(
-    systems: Optional[List[str]] = Query([]),
-    subtree: Optional[List[int]] = Query([]),
-    db=Depends(get_db)
+        systems: Optional[List[str]] = Query([]),
+        subtree: Optional[List[int]] = Query([]),
+        db=Depends(get_db)
 ):
     """Get all strains"""
-    #generating filename
-    subtreeSort =[]
-    if len(systems)>0:
+    # generating filename
+    subtreeSort = []
+    if len(systems) > 0:
         systems.sort()
-    if len(subtree)>0:
+    if len(subtree) > 0:
         subtreeSort = sortObj.radixSort(subtree)
     filenameStr = "".join(systems) + "".join(str(x) for x in subtreeSort)
     filenameHash = hashlib.md5(filenameStr.encode())
     filename = filenameHash.hexdigest()
 
-    #check if such query allready computed and return it. else, compute new given query.
-    if not os.path.exists('static/def_Sys/'+filename+".png"):
-        #prepare POPEN variables needed
+    # check if such query allready computed and return it. else, compute new given query.
+    if not os.path.exists('static/def_Sys/' + filename + ".png"):
+        # prepare POPEN variables needed
         command = 'C:/Program Files/R/R-4.0.3/bin/Rscript.exe'
         # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
         arg = '--vanilla'
 
-        #data preprocessing for the R query
-        strains = pd.read_excel('static/def_Sys/strains_info_table.xlsx')
-        strains['Defense_sys'] = np.random.choice(['Sys1', 'Sys2', 'Sys3', 'Sys4', 'Sys5', 'Sys6'], strains.shape[0])  # todo remove when defense systems are uploaded to db
+        # data preprocessing for the R query
+        strains = get_strains(db)
+        strains['Defense_sys'] = np.random.choice(def_sys, strains.shape[
+            0])  # todo remove when defense systems are uploaded to db
         strains = strains[['Index', 'Strain', 'Defense_sys']]
-        if len(subtree)>0:
+        if len(subtree) > 0:
             strains = strains.loc[strains['Index'].isin(subtree)]
-            systems = strains.loc[strains['Defense_sys'].isin(systems)]['Defense_sys'].unique().tolist() if len(systems)>0 else []
-        strains = pd.get_dummies(strains,columns=["Defense_sys"])
+            systems = strains.loc[strains['Defense_sys'].isin(systems)]['Defense_sys'].unique().tolist() if len(
+                systems) > 0 else []
+        strains = pd.get_dummies(strains, columns=["Defense_sys"])
         strains.to_csv("static/def_Sys/Defense_sys.csv")
 
         # R query build-up
@@ -79,75 +104,79 @@ async def phylogenetic_tree(
                 library(ape)
                 trfile <- system.file("extdata","our_tree.tree", package="ggtreeExtra")
                 tree <- read.tree(trfile) """
-        if len(subtree) >0:
+        if len(subtree) > 0:
             query = query + """
-            subtree =c(""" +",".join('"'+str(x)+'"' for x in subtreeSort)+""")
+            subtree =c(""" + ",".join('"' + str(x) + '"' for x in subtreeSort) + """)
             tree <- keep.tip(tree,subtree)
             """
-        query = query+"""
+        query = query + """
         p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5) + geom_tiplab()
                 """
         layer = 0
-        query = query +"""
+        query = query + """
          dat1 <- read.csv("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/Defense_sys.csv")
             """
         for sys in systems:
-            if(layer==0):
+            color = colors[sys]
+            if (layer == 0):
                 query = query + """p <- p + new_scale_fill() +
                                   geom_fruit(
                                     data=dat1,
                                     geom=geom_bar,
-                                    mapping=aes(y=Index,x=Defense_sys_"""+sys+"""),
+                                    mapping=aes(y=Index,x=Defense_sys_""" + sys + """, colour=c('""" + color + """')),
                                     orientation="y",
                                     width=1,
                                     pwidth=0.05,
                                     stat="identity",
-                                    fill='"""+random_color()+"""'
+                                    fill='""" + color + """'
                                   ) + theme(
                                     legend.text = element_text(size = 100),
                                     legend.title = element_text(size=100)
-                                  )
+                                  )+
+                                    scale_colour_manual(values = c('""" + color + """'), labels = c('""" + sys + """'))
                                   """
-            if(layer>0):
-                query = query + """p <- p + new_scale_fill() +
+            if (layer > 0):
+                query = query + """p <- p + new_scale_colour()+
                                   geom_fruit(
                                     data=dat1,
                                     geom=geom_bar,
-                                    mapping=aes(y=Index,x=Defense_sys_""" + sys + """),
+                                    mapping=aes(y=Index,x=Defense_sys_""" + sys + """, colour=c('""" + color + """')),
                                     orientation="y",
                                     width=1,
                                     pwidth=0.05,
                                     offset=0.01,
                                     stat="identity",
-                                    fill='""" + random_color() + """'
+                                    fill='""" + color + """'
                                   ) + theme(
+                                    legend.margin=margin(c(0,200,0,0)),
                                     legend.text = element_text(size = 100),
-                                    legend.title = element_text(size=100)
-                                  )
+                                    legend.title = element_blank(),
+                                    legend.spacing = unit(2,"cm"),
+                                    legend.spacing.x = unit(2,"cm")
+                                  )+
+                                    scale_colour_manual(values = c('""" + color + """'), labels = c('""" + sys + """'))
                                   """
-            layer +=1
+            layer += 1
 
-        query= query+"""
-        p <- p + scale_fill_identity(name = 'Defense Systems', guide = 'legend',labels = c('Sys1')) +
-
-        png("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/"""+filename+""".png", units="cm", width=300, height=300, res=100)
+        query = query + """
+        png("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/""" + filename + """.png", units="cm", width=300, height=300, res=100)
         plot(p)
         dev.off(0)"""
 
         # for debugging purpose and error tracking
         print(query)
-        f = open("static/def_Sys/"+filename+".R", "w")
+        f = open("static/def_Sys/" + filename + ".R", "w")
         f.write(query)
         f.close()
 
         # Execute R query
         try:
-            p = subprocess.Popen([command, arg, os.path.abspath("static/def_Sys/"+filename+".R")],
+            p = subprocess.Popen([command, arg, os.path.abspath("static/def_Sys/" + filename + ".R")],
                                  cwd=os.path.normpath(os.getcwd() + os.sep + os.pardir), stdin=subprocess.PIPE,
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             output, error = p.communicate()
-            return FileResponse('static/def_Sys/'+filename+".png")
+            return FileResponse('static/def_Sys/' + filename + ".png")
 
         except Exception as e:
             print("dbc2csv - Error converting file: phylo_tree.R")
@@ -155,11 +184,6 @@ async def phylogenetic_tree(
 
             return False
     else:
-        return FileResponse('static/def_Sys/'+filename+".png")
+        return FileResponse('static/def_Sys/' + filename + ".png")
 
     return False
-
-
-def random_color():
-    rand = lambda: np.random.randint(100, 255)
-    return '#%02X%02X%02X' % (rand(), rand(), rand())
