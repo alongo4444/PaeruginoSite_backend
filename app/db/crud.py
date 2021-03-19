@@ -204,3 +204,10 @@ def get_strains_cluster(db: Session,gene_name):
     result = results[0]
 
     return result
+
+def get_strain_id_name(db: Session, df_cluster):
+    result = db.query(models.Strains).with_entities(models.Strains.index,models.Strains.strain).all()
+    df_from_records = pd.DataFrame.from_records(result, index='index', columns=['index','strain',])
+    merge_df = pd.merge(df_from_records, df_cluster,how='left', on="index")
+    merge_df = merge_df.fillna(0)
+    return merge_df
