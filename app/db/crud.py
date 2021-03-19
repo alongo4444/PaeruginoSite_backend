@@ -7,11 +7,8 @@ import io
 
 from starlette.responses import StreamingResponse
 
-
 from . import models, schemas
 from app.core.security import get_password_hash
-
-
 
 def get_user(db: Session, user_id: int):
     user = db.query(models.User).filter(models.User.id == user_id).first()
@@ -79,16 +76,6 @@ def get_table_names(db: Session):
     my_query = "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'"
     results = db.execute(my_query).fetchall()
     print(results)
-
-def defer_everything_but(entity, cols):
-    m = class_mapper(entity)
-    return [defer(k) for k in
-            set(p.key for p
-                in m.iterate_properties
-                if hasattr(p, 'columns')).difference(cols)]
-
-    # s = Session()
-    # print s.query(A).options(*defer_everything_but(A, ["q", "p"]))
 
 # prepares the "where" query for the get_genes_download function, to select only the genes from the desired strains
 def selectedAS_to_query(selectedAS):
@@ -161,8 +148,6 @@ def get_genes(db: Session):
                                                            ])
     df_from_records['locus_tag_copy'] = df_from_records.index
     # return FileResponse("../road-sign-361513_960_720.jpg")
-    print(df_from_records.head(5))
-
     return df_from_records.to_dict('records')
     #query = "select * from Genes"
     # df = pd.read_sql(models.Genes, db.bind)
@@ -171,8 +156,16 @@ def get_genes(db: Session):
     #return db.query(models.Genes).all()
     # return db.query(models.Genes).all()
 
-
 def get_strains(db: Session):
+    result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain, models.Strains.level,
+                                                    models.Strains.gc, models.Strains.size,
+                                                    models.Strains.scaffolds, models.Strains.assembly_accession_x,
+                                                    models.Strains.assembly).all()
+    df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain', 'level', 'gc', 'size', 'scaffolds',
+                                                                 'assembly_accession_x', 'assembly'])
+    return df_from_records
+
+def get_strains_names(db: Session):
     # Defining the SQLAlchemy-query
     strains_query = db.query(models.Genes).with_entities(models.Strains.assembly_accession_x,
                                                        models.Strains.strain, )
