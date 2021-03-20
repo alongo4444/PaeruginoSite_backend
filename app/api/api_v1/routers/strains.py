@@ -1,22 +1,49 @@
-from fastapi import APIRouter, Request, Depends, Response, encoders
+from fastapi import APIRouter, Request, Depends, Response, encoders, Query
 import subprocess, os
-from fastapi.responses import FileResponse
+import pandas as pd
+from fastapi.responses import FileResponse,HTMLResponse
 from app.db.session import get_db
 from app.db.crud import (
-    get_strains,
+    get_strains
 )
+import numpy as np
+from pathlib import Path
+from typing import List, Optional
+from sorting_techniques import pysort
+import hashlib
+import json
 
-from PIL import Image
 
-from app.db.schemas import StrainBase
 
+def random_color():
+    rand = lambda: np.random.randint(100, 255)
+    return '#%02X%02X%02X' % (rand(), rand(), rand())
+
+
+def load_colors():
+    # Opening JSON file colors.json
+    colors_dict = dict()
+    with open("static/def_Sys/colors.json") as f:
+        li = json.load(f)
+        colors = [x['color'] for x in li]
+        names = [x['label'] for x in li]  # note that you use load(), not loads() to read from file
+    for (x, col) in zip(names, colors):
+        colors_dict[x.upper()] = col
+
+    return colors_dict
+
+
+sortObj = pysort.Sorting()
 strains_router = r = APIRouter()
+colors = load_colors()
+def_sys = ['SHEDU', 'RM', 'PAGOS', 'SEPTU', 'THOERIS', 'WADJET', 'ZORYA', 'ABI', 'BREX', 'CRISPR', 'DISARM', 'DND',
+           'DRUANTIA', 'GABIJA', 'HACHIMAN', 'KIWA', 'LAMASSU']
 
 
 @r.get(
-    "/strains",
+    "/",
     # response_model=t.List[StrainBase],
-    response_model_exclude_none=True,
+    # response_model_exclude_none=True,
 )
 async def strains_list(
         response: Response,
@@ -30,36 +57,156 @@ async def strains_list(
 
 
 @r.get(
-    "/strains/phyloTree",
-    response_model_exclude_none=True,
+    "/phyloTree",
+    # response_model_exclude_none=True,
 )
-async def strains_list(
-        response: Response
+async def phylogenetic_tree(
+        systems: Optional[List[str]] = Query([]),
+        subtree: Optional[List[int]] = Query([]),
+        db=Depends(get_db)
 ):
     """Get all strains"""
+    # generating filename
+    subtreeSort = []
+    if len(systems) > 0:
+        systems.sort()
+    if len(subtree) > 0:
+        subtreeSort = sortObj.radixSort(subtree)
+    filenameStr = "".join(systems) + "".join(str(x) for x in subtreeSort)
+    filenameHash = hashlib.md5(filenameStr.encode())
+    filename = filenameHash.hexdigest()
 
-    r_script = open("static/phylo_tree.R", "w")
-    r_script.write(
-        'library(ggtreeExtra)\n##library(ggstar)\nlibrary(ggplot2)\nlibrary(ggtree)\nlibrary(treeio)\nlibrary(ggnewscale)\nlibrary(ape)\n' +
-        'trfile <- system.file("extdata","tree.nwk", package="ggtreeExtra")\ntree <- read.tree(trfile)\n'+
-        'p <- ggtree(tree, layout="fan", open.angle = 10, size = 0.5)\npng("'
-        + (os.path.abspath("static/phylo_tree.png")).replace('\\', '/') +
-        '", units="cm", width=800, height=800, res=60)\nplot(p + geom_tiplab())\ndev.off(0)')
-    r_script.close()
-    command = 'C:/Program Files/R/R-4.0.3/bin/Rscript.exe'
-    # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
-    arg = '--vanilla'
-    try:
-        p = subprocess.Popen([command, arg, os.path.abspath("static/phylo_tree.R")],
-                             cwd=os.path.normpath(os.getcwd() + os.sep + os.pardir), stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # check if such query allready computed and return it. else, compute new given query.
+    if not os.path.exists('static/def_Sys/' + filename + ".png"):
+        # prepare POPEN variables needed
+        command = 'C:/Program Files/R/R-4.0.3/bin/Rscript.exe'
+        # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
+        arg = '--vanilla'
 
-        output, error = p.communicate()
-        return FileResponse('static/phylo_tree.png')
+        # data preprocessing for the R query
+        strains = get_strains(db)
+        strains['Defense_sys'] = np.random.choice(def_sys, strains.shape[
+            0])  # todo remove when defense systems are uploaded to db
+        strains = strains[['index', 'strain', 'Defense_sys']]
+        if len(subtree) > 0:
+            strains = strains.loc[strains['index'].isin(subtree)]
+            systems = strains.loc[strains['Defense_sys'].isin(systems)]['Defense_sys'].unique().tolist() if len(
+                systems) > 0 else []
+        strains = pd.get_dummies(strains, columns=["Defense_sys"])
+        strains.to_csv("static/def_Sys/Defense_sys.csv")
 
-    except Exception as e:
-        print("dbc2csv - Error converting file: phylo_tree.R")
-        print(e)
+        # R query build-up
+        query = """
+                    library(ggtreeExtra)
+                    ##library(ggstar)
+                    library(ggplot2)
+                    library(ggtree)
+                    library(treeio)
+                    library(ggnewscale)
+                    library(ape)
+                    trfile <- system.file("extdata","our_tree.tree", package="ggtreeExtra")
+                    tree <- read.tree(trfile) """
+        if len(subtree) > 0:
+            query = query + """
+                subtree =c(""" + ",".join('"' + str(x) + '"' for x in subtreeSort) + """)
+                tree <- keep.tip(tree,subtree)
+                """
+        query = query + """
+            p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5) + geom_tiplab()
+                    """
+        layer = 0
+        query = query + """
+             dat1 <- read.csv("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/Defense_sys.csv")
+                """
+        for sys in systems:
+            color = colors[sys]
+            if (layer == 0):
+                query = query + """p <- p + new_scale_fill() +
+                                      geom_fruit(
+                                        data=dat1,
+                                        geom=geom_bar,
+                                        mapping=aes(y=index,x=Defense_sys_""" + sys + """, colour=c('""" + color + """')),
+                                        orientation="y",
+                                        width=1,
+                                        pwidth=0.05,
+                                        stat="identity",
+                                        fill='""" + color + """'
+                                      ) + theme(
+                                      
+                                        legend.text = element_text(size = 100),
+                                        legend.title = element_blank(),
+                                        legend.margin=margin(c(0,200,0,0)),
+                                        legend.spacing = unit(2,"cm"),
+                                        legend.spacing.x = unit(2,"cm")
+                                      )+
+                                        scale_colour_manual(values = c('""" + color + """'), labels = c('""" + sys + """'))
+                                      """
+            if (layer > 0):
+                query = query + """p <- p + new_scale_colour()+
+                                      geom_fruit(
+                                        data=dat1,
+                                        geom=geom_bar,
+                                        mapping=aes(y=index,x=Defense_sys_""" + sys + """, colour=c('""" + color + """')),
+                                        orientation="y",
+                                        width=1,
+                                        pwidth=0.05,
+                                        offset=0.01,
+                                        stat="identity",
+                                        fill='""" + color + """'
+                                      ) + theme(
+                                        legend.margin=margin(c(0,200,0,0)),
+                                        legend.text = element_text(size = 100),
+                                        legend.title = element_blank(),
+                                        legend.spacing = unit(2,"cm"),
+                                        legend.spacing.x = unit(2,"cm")
+                                      )+
+                                        scale_colour_manual(values = c('""" + color + """'), labels = c('""" + sys + """'))
+                                      """
+            layer += 1
 
-        return False
+        query = query + """
+            png("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/""" + filename + """.png", units="cm", width=300, height=300, res=100)
+            plot(p)
+            dev.off(0)"""
+
+        # for debugging purpose and error tracking
+        print(query)
+        f = open("static/def_Sys/" + filename + ".R", "w")
+        f.write(query)
+        f.close()
+
+        # Execute R query
+        try:
+            p = subprocess.Popen([command, arg, os.path.abspath("static/def_Sys/" + filename + ".R")],
+                                 cwd=os.path.normpath(os.getcwd() + os.sep + os.pardir), stdin=subprocess.PIPE,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            output, error = p.communicate()
+            return FileResponse('static/def_Sys/' + filename + ".png")
+
+        except Exception as e:
+            print("dbc2csv - Error converting file: phylo_tree.R")
+            print(e)
+
+            return False
+    else:
+        return FileResponse('static/def_Sys/' + filename + ".png")
+
     return False
+
+@r.get(
+    "/strains/strainCircos/{strain_name}",
+    response_model_exclude_none=True,
+    response_class=FileResponse,
+    status_code=200,
+)
+async def strain_circos_graph(strain_name, response: Response):
+    # the structure of the dir file will be stain_name.html and it will be stored in a specific directory.
+    strain_file = Path("static/"+strain_name+".html")
+    print(strain_file)
+    if strain_file.is_file():
+        return FileResponse(strain_file, status_code=200)
+    else:
+        # file is not in the directory (the strain name is wrong)
+        return Response(status_code=400)
+
