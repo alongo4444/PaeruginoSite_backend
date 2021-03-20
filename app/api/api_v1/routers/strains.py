@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Request, Depends, Response, encoders, Query
 import subprocess, os
 import pandas as pd
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse,HTMLResponse
 from app.db.session import get_db
 from app.db.crud import (
-    get_strains
+    get_strains,get_strains_names
 )
 import numpy as np
 from pathlib import Path
@@ -14,10 +14,15 @@ import hashlib
 import json
 
 
+
 def random_color():
     rand = lambda: np.random.randint(100, 255)
     return '#%02X%02X%02X' % (rand(), rand(), rand())
 
+from bs4 import BeautifulSoup
+from bs4.element import Tag
+
+from PIL import Image
 
 def get_resolution(x):
     if (x == 0):
@@ -55,7 +60,7 @@ async def strains_list(
         db=Depends(get_db)
 ):
     """Get all strains"""
-    strains = get_strains(db)
+    strains = get_strains_names(db)
     # This is necessary for react-admin to work
     # response.headers["Content-Range"] = f"0-9/{len(users)}"
     return strains
@@ -202,17 +207,25 @@ async def phylogenetic_tree(
 
 
 @r.get(
-    "/strains/strainCircos/{strain_name}",
+    "/strainCircos/{strain_name}",
     response_model_exclude_none=True,
     response_class=FileResponse,
     status_code=200,
 )
 async def strain_circos_graph(strain_name, response: Response):
     # the structure of the dir file will be stain_name.html and it will be stored in a specific directory.
-    strain_file = Path("static/" + strain_name + ".html")
-    print(strain_file)
+    strain_file = Path("static/"+strain_name+".txt")
     if strain_file.is_file():
+        '''
+        f = open(strain_file, "r", encoding='utf-8')
+        text = f.read()
+        stopwords = ['<!DOCTYPE html>', '<html>', '</html>']
+        for word in stopwords:
+            if word in text:
+                text = text.replace(word, "")
+        '''
         return FileResponse(strain_file, status_code=200)
     else:
         # file is not in the directory (the strain name is wrong)
         return Response(status_code=400)
+
