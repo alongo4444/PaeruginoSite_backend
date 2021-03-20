@@ -4,7 +4,7 @@ import pandas as pd
 from fastapi.responses import FileResponse,HTMLResponse
 from app.db.session import get_db
 from app.db.crud import (
-    get_strains
+    get_strains,get_strains_names
 )
 import numpy as np
 from pathlib import Path
@@ -50,7 +50,7 @@ async def strains_list(
         db=Depends(get_db)
 ):
     """Get all strains"""
-    strains = get_strains(db)
+    strains = get_strains_names(db)
     # This is necessary for react-admin to work
     # response.headers["Content-Range"] = f"0-9/{len(users)}"
     return strains
