@@ -44,3 +44,4 @@ class Strains(Base):
     size = Column("sizemb", Numeric)
     gc = Column("gc", Numeric)
     scaffolds = Column("scaffolds", Integer)
+

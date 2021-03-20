@@ -9,7 +9,7 @@ from app.db.schemas import GeneBase
 genes_router = r = APIRouter()
 
 @r.get(
-    "/genes",
+    "/",
     #response_model=t.List[GeneBase],
     response_model_exclude_none=True,
 )
