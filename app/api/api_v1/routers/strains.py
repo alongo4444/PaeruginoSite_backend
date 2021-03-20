@@ -199,7 +199,7 @@ async def phylogenetic_tree(
     return False
 
 @r.get(
-    "/strains/strainCircos/{strain_name}",
+    "/strainCircos/{strain_name}",
     response_model_exclude_none=True,
     response_class=FileResponse,
     status_code=200,
