@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, Depends, Response, encoders, Query
 import subprocess, os
 import pandas as pd
-from fastapi.responses import FileResponse,HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from app.db.session import get_db
 from app.db.crud import (
     get_strains
@@ -14,10 +14,15 @@ import hashlib
 import json
 
 
-
 def random_color():
     rand = lambda: np.random.randint(100, 255)
     return '#%02X%02X%02X' % (rand(), rand(), rand())
+
+
+def get_resolution(x):
+    if (x == 0):
+        return 300
+    return 0.183 * x + 23.672
 
 
 def load_colors():
@@ -164,8 +169,9 @@ async def phylogenetic_tree(
                                       """
             layer += 1
 
+        resolution = get_resolution(len(subtreeSort))
         query = query + """
-            png("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/""" + filename + """.png", units="cm", width=300, height=300, res=100)
+            png("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/""" + filename + """.png", units="cm", width=""" +str(resolution)+""", height="""+str(resolution)+""", res=100)
             plot(p)
             dev.off(0)"""
 
@@ -194,6 +200,7 @@ async def phylogenetic_tree(
 
     return False
 
+
 @r.get(
     "/strains/strainCircos/{strain_name}",
     response_model_exclude_none=True,
@@ -202,11 +209,10 @@ async def phylogenetic_tree(
 )
 async def strain_circos_graph(strain_name, response: Response):
     # the structure of the dir file will be stain_name.html and it will be stored in a specific directory.
-    strain_file = Path("static/"+strain_name+".html")
+    strain_file = Path("static/" + strain_name + ".html")
     print(strain_file)
     if strain_file.is_file():
         return FileResponse(strain_file, status_code=200)
     else:
         # file is not in the directory (the strain name is wrong)
         return Response(status_code=400)
-
