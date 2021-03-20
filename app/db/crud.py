@@ -194,5 +194,3 @@ def get_strains(db: Session):
     json.dumps(parsed, indent=4)
     return parsed
     #return df_from_records.to_csv()
-
-
