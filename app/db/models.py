@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, Text, Numeric, VARCHAR
+from sqlalchemy import Boolean, Column, Integer, String, Text, Numeric, VARCHAR, FLOAT
 
 from .session import Base
 
@@ -40,3 +40,7 @@ class Strains(Base):
     assembly = Column("assembly", Text)
     strain = Column("strain", Text)
     assembly_accession_x = Column("assembly_accession_x", Text)
+    level = Column("level", Text)
+    size = Column("sizemb", Numeric)
+    gc = Column("gc", Numeric)
+    scaffolds = Column("scaffolds", Integer)
