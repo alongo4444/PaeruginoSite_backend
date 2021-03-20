@@ -24,6 +24,12 @@ from bs4.element import Tag
 
 from PIL import Image
 
+def get_resolution(x):
+    if (x == 0):
+        return 300
+    return 0.183 * x + 23.672
+
+
 def load_colors():
     # Opening JSON file colors.json
     colors_dict = dict()
@@ -168,8 +174,9 @@ async def phylogenetic_tree(
                                       """
             layer += 1
 
+        resolution = get_resolution(len(subtreeSort))
         query = query + """
-            png("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/""" + filename + """.png", units="cm", width=300, height=300, res=100)
+            png("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/""" + filename + """.png", units="cm", width=""" +str(resolution)+""", height="""+str(resolution)+""", res=100)
             plot(p)
             dev.off(0)"""
 
@@ -198,6 +205,7 @@ async def phylogenetic_tree(
 
     return False
 
+
 @r.get(
     "/strainCircos/{strain_name}",
     response_model_exclude_none=True,
@@ -220,3 +228,4 @@ async def strain_circos_graph(strain_name, response: Response):
     else:
         # file is not in the directory (the strain name is wrong)
         return Response(status_code=400)
+
