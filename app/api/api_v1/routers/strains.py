@@ -215,7 +215,7 @@ async def strain_circos_graph(strain_name, response: Response):
         for word in stopwords:
             if word in text:
                 text = text.replace(word, "")
-        '''
+        # '''
         return FileResponse(strain_file, status_code=200)
     else:
         # file is not in the directory (the strain name is wrong)
