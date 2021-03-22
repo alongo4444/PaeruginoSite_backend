@@ -214,7 +214,7 @@ async def phylogenetic_tree(
 )
 async def strain_circos_graph(strain_name, response: Response):
     # the structure of the dir file will be stain_name.html and it will be stored in a specific directory.
-    strain_file = Path("static/"+strain_name+".txt")
+    strain_file = Path("static/"+strain_name+".html")
     if strain_file.is_file():
         return FileResponse(strain_file, status_code=200)
     else:
