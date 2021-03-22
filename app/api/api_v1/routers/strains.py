@@ -77,14 +77,6 @@ async def strain_circos_graph(strain_name, response: Response):
     # the structure of the dir file will be stain_name.html and it will be stored in a specific directory.
     strain_file = Path("static/"+strain_name+".txt")
     if strain_file.is_file():
-        '''
-        f = open(strain_file, "r", encoding='utf-8')
-        text = f.read()
-        stopwords = ['<!DOCTYPE html>', '<html>', '</html>']
-        for word in stopwords:
-            if word in text:
-                text = text.replace(word, "")
-        '''
         return FileResponse(strain_file, status_code=200)
     else:
         # file is not in the directory (the strain name is wrong)
