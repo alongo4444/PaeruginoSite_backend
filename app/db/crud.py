@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session ,class_mapper, defer
 import pandas as pd
 import typing as t
 import json
@@ -79,50 +79,31 @@ def get_table_names(db: Session):
     results = db.execute(my_query).fetchall()
     print(results)
 
-def test(db: Session,q):
-    # Defining the SQLAlchemy-query
-    genes_query = db.query(models.Genes).with_entities(models.Genes.locus_tag,
-                                                       models.Genes.genomic_accession_y,
-                                                       models.Genes.start_y,
-                                                       models.Genes.end_y,
-                                                       models.Genes.strand_y,
-                                                       models.Genes.product_accession_y,
-                                                       models.Genes.name_y,
-                                                       models.Genes.symbol_y,
-                                                       models.Genes.geneID_y,
-                                                       models.Genes.product_length_y,
-                                                       models.Genes.dna_sequence,
-                                                       models.Genes.protein_sequence, )
+# prepares the "where" query for the get_genes_download function, to select only the genes from the desired strains
+def selectedAS_to_query(selectedAS):
+    ret = 'assembly_x='
+    for idx,s in enumerate(selectedAS):
+        if idx == 0:
+            ret = ret + "'{}'".format(s)
+        else:
+            ret = ret + " OR assembly_x='{}'".format(s)
+    return ret
 
-    # Getting all the entries via SQLAlchemy
-    all_genes = genes_query.all()
+def get_genes_download(db: Session, selectedC, selectedAS):
 
-    # We provide also the (alternate) column names and set the index here,
-    # renaming the column `id` to `currency__id`
-    df_from_records = pd.DataFrame.from_records(all_genes
-                                                , index='locus_tag'
-                                                , columns=['locus_tag',
-                                                           'genomic_accession_y',
-                                                           'start_y',
-                                                           'end_y',
-                                                           'strand_y',
-                                                           'product_accession_y',
-                                                           'name_y',
-                                                           'symbol_y',
-                                                           'geneID_y',
-                                                           'product_length_y',
-                                                           'dna_sequence',
-                                                           'protein_sequence'
-                                                           ])
-    df_from_records['locus_tag_copy'] = df_from_records.index
-    # return FileResponse("../road-sign-361513_960_720.jpg")
-    print(df_from_records.head(5))
-    print(q)
+    cols = ','.join(selectedC)
+
+    rows_q=selectedAS_to_query(selectedAS)
+
+    my_query = "SELECT {} FROM pao1_data WHERE {}".format(cols,rows_q) # Need to change the FROM TABLE to the total genes table eventually
+    results = db.execute(my_query).fetchall()
+    df_from_records = pd.DataFrame(results, columns=selectedC)
 
     stream = io.StringIO()
 
     df_from_records.to_csv(stream, index=False)
 
+    #Returns a csv prepared to be downloaded in the FrontEnd
     response = StreamingResponse(iter([stream.getvalue()]),
                                  media_type="text/csv"
                                  )
@@ -169,8 +150,6 @@ def get_genes(db: Session):
                                                            ])
     df_from_records['locus_tag_copy'] = df_from_records.index
     # return FileResponse("../road-sign-361513_960_720.jpg")
-    print(df_from_records.head(5))
-
     return df_from_records.to_dict('records')
     #query = "select * from Genes"
     # df = pd.read_sql(models.Genes, db.bind)
@@ -179,11 +158,19 @@ def get_genes(db: Session):
     #return db.query(models.Genes).all()
     # return db.query(models.Genes).all()
 
-
 def get_strains(db: Session):
+    result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain, models.Strains.level,
+                                                    models.Strains.gc, models.Strains.size,
+                                                    models.Strains.scaffolds, models.Strains.assembly_accession_x,
+                                                    models.Strains.assembly).all()
+    df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain', 'level', 'gc', 'size', 'scaffolds',
+                                                                 'assembly_accession_x', 'assembly'])
+    return df_from_records
+
+def get_strains_names(db: Session):
     # Defining the SQLAlchemy-query
-    strains_query = db.query(models.Genes).with_entities(models.Strains.Assembly,
-                                                       models.Strains.Strain, )
+    strains_query = db.query(models.Genes).with_entities(models.Strains.assembly_accession_x,
+                                                       models.Strains.strain, )
 
     # Getting all the entries via SQLAlchemy
     all_strains= strains_query.all()
@@ -191,11 +178,11 @@ def get_strains(db: Session):
     # We provide also the (alternate) column names and set the index here,
     # renaming the column `id` to `currency__id`
     df_from_records = pd.DataFrame.from_records(all_strains
-                                                , index='Assembly'
-                                                , columns=['Assembly',
-                                                           'Strain',
+                                                , index='assembly_accession_x'
+                                                , columns=['assembly_accession_x',
+                                                           'strain',
                                                            ])
-    df_from_records = df_from_records.rename(columns={"Strain": "name"})
+    df_from_records = df_from_records.rename(columns={"strain": "name"})
     print(df_from_records.head(5))
     df_from_records['key'] = df_from_records.index
     result = df_from_records.to_json(orient="records")
@@ -205,3 +192,17 @@ def get_strains(db: Session):
     #return df_from_records.to_csv()
 
 
+def get_strains_cluster(db: Session,gene_name):
+    my_query = "SELECT index,combined_index FROM \"Cluster\" WHERE (PA14 LIKE '%{}%') OR (PAO1 LIKE '%{}%')".format(gene_name,gene_name)
+    results = db.execute(my_query).fetchall()
+
+    result = results[0]
+
+    return result
+
+def get_strain_id_name(db: Session, df_cluster):
+    result = db.query(models.Strains).with_entities(models.Strains.index,models.Strains.strain).all()
+    df_from_records = pd.DataFrame.from_records(result, index='index', columns=['index','strain',])
+    merge_df = pd.merge(df_from_records, df_cluster,how='left', on="index")
+    merge_df = merge_df.fillna(0)
+    return merge_df
