@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Query, Request, Depends, Response, encoders
 from typing import List, Optional
-import io
-from starlette.responses import StreamingResponse
+
 
 from app.db.session import get_db
 from app.db.crud import (
@@ -39,8 +38,6 @@ async def download_genes(
 ):
     """Get all genes"""
     genes = get_genes_download(db, selectedC, selectedAS)
-    # This is necessary for react-admin to work
-    # response.headers["Content-Range"] = f"0-9/{len(users)}"
 
     return prepare_file(genes)
 

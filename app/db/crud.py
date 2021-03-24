@@ -253,7 +253,7 @@ def get_defense_system_names(db: Session):
 
     return result_str
 
-
+# returns a dataframe with the genes information of the system defenses in selectedAS with the columns in selectedC.
 def get_genes_by_defense(db: Session, selectedC, selectedAS):
 
     # s_names_l = get_strains_names(db)
@@ -304,7 +304,7 @@ def get_genes_by_defense(db: Session, selectedC, selectedAS):
     return result
 
 
-# returns a csv file of a dataframe
+# returns a csv file of a dataframe to the frontend
 def prepare_file(dafaframe):
     stream = io.StringIO()
 
