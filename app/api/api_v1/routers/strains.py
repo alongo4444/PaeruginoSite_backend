@@ -4,7 +4,7 @@ import pandas as pd
 from fastapi.responses import FileResponse,HTMLResponse
 from app.db.session import get_db
 from app.db.crud import (
-    get_strains,get_strains_names
+    get_strains, get_strains_names, get_defense_systems_of_genes
 )
 import numpy as np
 from pathlib import Path
@@ -103,7 +103,7 @@ async def phylogenetic_tree(
             systems = strains.loc[strains['Defense_sys'].isin(systems)]['Defense_sys'].unique().tolist() if len(
                 systems) > 0 else []
         strains = pd.get_dummies(strains, columns=["Defense_sys"])
-        strains.to_csv("static/def_Sys/Defense_sys.csv")
+        strains.to_csv("C:\\Users\\tomer\\PycharmProjects\\PaeruginoSite_backend\\app\\static\\def_Sys\\Defense_sys.csv")
 
         # R query build-up
         query = """
@@ -126,7 +126,7 @@ async def phylogenetic_tree(
                     """
         layer = 0
         query = query + """
-             dat1 <- read.csv("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/Defense_sys.csv")
+             dat1 <- read.csv("C:\\Users\\tomer\\PycharmProjects\\PaeruginoSite_backend\\app\\static\\def_Sys\\Defense_sys.csv")
                 """
         for sys in systems:
             color = colors[sys]
@@ -176,7 +176,7 @@ async def phylogenetic_tree(
 
         resolution = get_resolution(len(subtreeSort))
         query = query + """
-            png("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/""" + filename + """.png", units="cm", width=""" +str(resolution)+""", height="""+str(resolution)+""", res=100)
+            png("/static/def_Sys/""" + filename + """.png", units="cm", width=""" +str(resolution)+""", height="""+str(resolution)+""", res=100)
             plot(p)
             dev.off(0)"""
 
@@ -202,7 +202,6 @@ async def phylogenetic_tree(
             return False
     else:
         return FileResponse('static/def_Sys/' + filename + ".png")
-
     return False
 
 
@@ -219,5 +218,16 @@ async def strain_circos_graph(strain_name, response: Response):
         return FileResponse(strain_file, status_code=200)
     else:
         # file is not in the directory (the strain name is wrong)
-        return Response(status_code=400)
+        return Response(content="No Results", status_code=400)
 
+
+@r.get(
+    "/strainGenesDefSystems/{strain_name}",
+    response_model_exclude_none=True,
+    status_code=200,
+)
+async def get_genes_def_systems(strain_name, response: Response, db=Depends(get_db)):
+    df = get_defense_systems_of_genes(db, strain_name)
+    if df == 'No Results':
+        return Response(content="No Results", status_code=400)
+    return df

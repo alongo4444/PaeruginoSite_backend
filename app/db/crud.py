@@ -200,9 +200,30 @@ def get_strains_cluster(db: Session,gene_name):
 
     return result
 
+
 def get_strain_id_name(db: Session, df_cluster):
     result = db.query(models.Strains).with_entities(models.Strains.index,models.Strains.strain).all()
     df_from_records = pd.DataFrame.from_records(result, index='index', columns=['index','strain',])
     merge_df = pd.merge(df_from_records, df_cluster,how='left', on="index")
     merge_df = merge_df.fillna(0)
     return merge_df
+
+
+def get_defense_systems_of_genes(db: Session, strain_name):
+    """
+    the function returns all the information about defense system of a specific strain
+    :param db: the connection to the database
+    :param strain_name: the strain we want to present its defense systems
+    :return: dataframe that contains the relevant information
+    """
+    query = db.query(models.GenesDefenseSystems)\
+        .with_entities(models.GenesDefenseSystems.locus_tag,
+                       models.GenesDefenseSystems.defense_system,models.GenesDefenseSystems.anti_crispr).\
+        filter(models.GenesDefenseSystems.strain == strain_name).all()
+    df = pd.DataFrame.from_records(query, columns=['locus_tag', 'defense_system','anti_crispr'])
+    print(df)
+    if df.empty:
+        return "No Results"
+    else:
+        df = df.to_dict('records')
+    return df
