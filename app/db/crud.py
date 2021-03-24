@@ -1,9 +1,12 @@
+import io
+
+from bs4 import BeautifulSoup
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session ,class_mapper, defer
 import pandas as pd
 import typing as t
 import json
-import io
+import re
 
 from starlette.responses import StreamingResponse
 
@@ -79,38 +82,32 @@ def get_table_names(db: Session):
     results = db.execute(my_query).fetchall()
     print(results)
 
-# prepares the "where" query for the get_genes_download function, to select only the genes from the desired strains
-def selectedAS_to_query(selectedAS):
-    ret = 'assembly_x='
+# prepares the "where" query, gets the selected options from the user and adds it to the field we what to filter by
+#
+# example: selectedAS = ['PAO1', 'PA14'] , ret = 'assembly_x' will return:
+#   assembly_x='PAO1' OR assembly_x='PA14'
+def selectedAS_to_query(selectedAS, ret):
+    if not selectedAS:
+        return "1=1" # if the user didn't select a strain, return all strains
     for idx,s in enumerate(selectedAS):
         if idx == 0:
-            ret = ret + "'{}'".format(s)
+            ret = ret + "='{}'".format(s)
         else:
-            ret = ret + " OR assembly_x='{}'".format(s)
+            ret = ret + " OR {}='{}'".format(ret,s)
     return ret
 
 def get_genes_download(db: Session, selectedC, selectedAS):
 
     cols = ','.join(selectedC)
 
-    rows_q=selectedAS_to_query(selectedAS)
+    rows_q=selectedAS_to_query(selectedAS, 'assembly_x')
 
     my_query = "SELECT {} FROM pao1_data WHERE {}".format(cols,rows_q) # Need to change the FROM TABLE to the total genes table eventually
     results = db.execute(my_query).fetchall()
     df_from_records = pd.DataFrame(results, columns=selectedC)
 
-    stream = io.StringIO()
+    return df_from_records
 
-    df_from_records.to_csv(stream, index=False)
-
-    #Returns a csv prepared to be downloaded in the FrontEnd
-    response = StreamingResponse(iter([stream.getvalue()]),
-                                 media_type="text/csv"
-                                 )
-
-    response.headers["Content-Disposition"] = "attachment; filename=export.csv"
-
-    return response
 
 
 def get_genes(db: Session):
@@ -206,3 +203,118 @@ def get_strain_id_name(db: Session, df_cluster):
     merge_df = pd.merge(df_from_records, df_cluster,how='left', on="index")
     merge_df = merge_df.fillna(0)
     return merge_df
+
+
+def parse_circos_html(html_file):
+    with open(html_file, encoding='utf8') as infile:
+        html = BeautifulSoup(infile, "html.parser")
+
+    res_dict = {}
+
+    head_tag = html.head
+
+    head_scripts = head_tag.find_all('script')
+
+    lhs = []
+    for hs in head_scripts:
+        lhs.append(hs.string.strip('\n'))
+
+    res_dict['head'] = lhs
+
+    # body_tag = html.body
+    #
+    # body_tags = body_tag.find_all()
+    #
+    # btgs = []
+    # for bgs in body_tags:
+    #     btgs.append(bgs.stripped_strings)
+    #
+    # res_dict['body'] = btgs
+
+    return res_dict
+
+# returns all the names of the defense systems
+def get_defense_system_names(db: Session):
+    my_query = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Cluster' ORDER BY ORDINAL_POSITION"
+    results = db.execute(my_query).fetchall()
+    results_ri = results[141:157] # edit if added more defense systems to the DB in the future
+    result_str = []
+    id = 0
+    for r in results_ri:
+        d = {}
+        regex = re.compile('[^a-zA-Z]')
+        # First parameter is the replacement, second parameter is your input string
+        r = regex.sub('', str(r))
+        # Out: 'abdE'
+        d['name'] = r
+        d['key'] = id
+        id += 1
+        result_str.append(d)
+
+    return result_str
+
+
+def get_genes_by_defense(db: Session, selectedC, selectedAS):
+
+    # s_names_l = get_strains_names(db)
+    s_names = []
+
+    # for l in s_names_l:
+    #     if isinstance(l['name'], str):
+    #         s_names.append("\'{}\'".format(l['name']))
+
+    s_names.append('PAO1')
+    s_names.append('PA14')
+
+    ds = ','.join(s_names)
+
+    genes_ds = []
+    for s in selectedAS:
+        ret = s + "=1"
+
+        my_query = "SELECT {} FROM \"Cluster\" WHERE {}".format(ds,ret)  # Need to change the FROM TABLE to the total genes table eventually
+        results = db.execute(my_query).fetchall()
+
+        for r in results:
+            for t in r:
+                if t == '-':
+                    continue
+                s_ds = t.split(';')
+                for s_name in s_ds:
+                    if s_name == '-':
+                        continue
+                    new_row = (s_name,s)
+                    genes_ds.append(new_row)
+
+    df_genes_ds = pd.DataFrame(genes_ds, columns=['locus_tag', 'ds_name']) # currently holds the genes and the defense system names (i.e: [PA2735, brex])
+
+    selectedC_copy = selectedC.copy()
+
+    for idx,s in enumerate(selectedC):
+        selectedC[idx] = "\"" + s + "\""
+    selectedC.insert(0,'\"locus_tag\"')
+    selectedC_copy.insert(0, "locus_tag")
+    cols = ', '.join(selectedC)
+    my_query = "SELECT {} FROM \"Genes\"".format(cols)  # Get all genes
+    results = db.execute(my_query).fetchall()
+    df_genes_info = pd.DataFrame(results, columns=selectedC_copy)
+
+    result = df_genes_ds.merge(df_genes_info)
+
+    return result
+
+
+# returns a csv file of a dataframe
+def prepare_file(dafaframe):
+    stream = io.StringIO()
+
+    dafaframe.to_csv(stream, index=False)
+
+    #Returns a csv prepared to be downloaded in the FrontEnd
+    response = StreamingResponse(iter([stream.getvalue()]),
+                                 media_type="text/csv"
+                                 )
+
+    response.headers["Content-Disposition"] = "attachment; filename=export.csv"
+
+    return response

@@ -6,7 +6,7 @@ from typing import List, Optional
 from pathlib import Path
 from app.db.session import get_db
 from app.db.crud import (
-    get_genes, get_strains_cluster, get_strain_id_name
+    get_genes, get_strains_cluster, get_strain_id_name,get_defense_system_names
 )
 from app.db.schemas import GeneBase
 
@@ -38,3 +38,18 @@ async def cluster_tree(
     complet_data = get_strain_id_name(db,data_id_strain)
     complet_data.to_csv(r'static/cluster/cluster.csv', index=False)
     return 0
+
+@r.get(
+    "/get_defense_system_names/",
+    # response_model=t.List[StrainBase],
+    # response_model_exclude_none=True,
+)
+async def strains_list(
+        response: Response,
+        db=Depends(get_db)
+):
+    """Get all strains"""
+    ds = get_defense_system_names(db)
+    # This is necessary for react-admin to work
+    # response.headers["Content-Range"] = f"0-9/{len(users)}"
+    return ds
