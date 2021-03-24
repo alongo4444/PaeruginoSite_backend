@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Query, Request, Depends, Response, encoders
 from typing import List, Optional
+import io
+from starlette.responses import StreamingResponse
+
 from app.db.session import get_db
 from app.db.crud import (
-    get_genes, get_genes_download
+    get_genes, get_genes_download, get_genes_by_defense, prepare_file
 )
 from app.db.schemas import GeneBase
 
@@ -28,14 +31,32 @@ async def genes_list(
     #response_model=t.List[GeneBase],
     response_model_exclude_none=True,
 )
-async def test_genes_list(
+async def download_genes(
         response: Response,
         db=Depends(get_db),
-        selectedC: List[str] = Query(None),
-        selectedAS: List[str] = Query(None)
+        selectedC: List[str] = Query(None), # the selected columns to return
+        selectedAS: List[str] = Query(None) # the strains that were selected by the user
 ):
     """Get all genes"""
     genes = get_genes_download(db, selectedC, selectedAS)
     # This is necessary for react-admin to work
     # response.headers["Content-Range"] = f"0-9/{len(users)}"
-    return genes
+
+    return prepare_file(genes)
+
+@r.get(
+    "/genes_by_defense",
+    #response_model=t.List[GeneBase],
+    response_model_exclude_none=True,
+)
+async def genes_by_defense(
+        response: Response,
+        db=Depends(get_db),
+        selectedC: List[str] = Query(None), # the selected columns to return
+        selectedAS: List[str] = Query(None) # the strains that were selected by the user
+):
+    """Get all genes"""
+    genes_by_defense = get_genes_by_defense(db, selectedC, selectedAS)
+    # This is necessary for react-admin to work
+    # response.headers["Content-Range"] = f"0-9/{len(users)}"
+    return prepare_file(genes_by_defense)

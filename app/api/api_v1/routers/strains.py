@@ -103,7 +103,7 @@ async def phylogenetic_tree(
             systems = strains.loc[strains['Defense_sys'].isin(systems)]['Defense_sys'].unique().tolist() if len(
                 systems) > 0 else []
         strains = pd.get_dummies(strains, columns=["Defense_sys"])
-        strains.to_csv("C:\\Users\\tomer\\PycharmProjects\\PaeruginoSite_backend\\app\\static\\def_Sys\\Defense_sys.csv")
+        strains.to_csv("static/def_Sys/Defense_sys.csv")
 
         # R query build-up
         query = """
@@ -126,7 +126,7 @@ async def phylogenetic_tree(
                     """
         layer = 0
         query = query + """
-             dat1 <- read.csv("C:\\Users\\tomer\\PycharmProjects\\PaeruginoSite_backend\\app\\static\\def_Sys\\Defense_sys.csv")
+             dat1 <- read.csv("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/Defense_sys.csv")
                 """
         for sys in systems:
             color = colors[sys]
@@ -176,7 +176,7 @@ async def phylogenetic_tree(
 
         resolution = get_resolution(len(subtreeSort))
         query = query + """
-            png("/static/def_Sys/""" + filename + """.png", units="cm", width=""" +str(resolution)+""", height="""+str(resolution)+""", res=100)
+            png("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/""" + filename + """.png", units="cm", width=""" +str(resolution)+""", height="""+str(resolution)+""", res=100)
             plot(p)
             dev.off(0)"""
 
@@ -202,6 +202,7 @@ async def phylogenetic_tree(
             return False
     else:
         return FileResponse('static/def_Sys/' + filename + ".png")
+
     return False
 
 
