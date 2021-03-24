@@ -4,7 +4,7 @@ import pandas as pd
 from fastapi.responses import FileResponse,HTMLResponse
 from app.db.session import get_db
 from app.db.crud import (
-    get_strains,get_strains_names
+    get_strains,get_strains_names, parse_circos_html
 )
 import numpy as np
 from pathlib import Path
@@ -228,4 +228,3 @@ async def strain_circos_graph(strain_name, response: Response):
     else:
         # file is not in the directory (the strain name is wrong)
         return Response(status_code=400)
-
