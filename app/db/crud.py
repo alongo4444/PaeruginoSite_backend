@@ -195,9 +195,7 @@ def get_strains_names(db: Session):
 def get_strains_cluster(db: Session,gene_name):
     my_query = "SELECT index,combined_index FROM \"Cluster\" WHERE (PA14 LIKE '%{}%') OR (PAO1 LIKE '%{}%')".format(gene_name,gene_name)
     results = db.execute(my_query).fetchall()
-
     result = results[0]
-
     return result
 
 def get_strain_id_name(db: Session, df_cluster):
@@ -206,3 +204,7 @@ def get_strain_id_name(db: Session, df_cluster):
     merge_df = pd.merge(df_from_records, df_cluster,how='left', on="index")
     merge_df = merge_df.fillna(0)
     return merge_df
+def get_gene_by_strain(db: Session,strain_name):
+
+
+    return 0
