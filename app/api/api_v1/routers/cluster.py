@@ -12,7 +12,7 @@ from starlette.responses import FileResponse
 
 from app.db.session import get_db
 from app.db.crud import (
-    get_genes, get_strains_cluster, get_strain_id_name, get_strains
+    get_genes, get_strains_cluster, get_strain_id_name, get_strains, get_defense_system_names
 )
 
 from app.db.schemas import GeneBase
@@ -168,3 +168,18 @@ async def get_gene_strain(
     gene = get_genes(db)  # need to add strains name to the function
     list_genes = [d.get('locus_tag_copy') for d in gene]
     return list_genes
+
+@r.get(
+    "/get_defense_system_names/",
+    # response_model=t.List[StrainBase],
+    # response_model_exclude_none=True,
+)
+async def strains_list(
+        response: Response,
+        db=Depends(get_db)
+):
+    """Get all strains"""
+    ds = get_defense_system_names(db)
+    # This is necessary for react-admin to work
+    # response.headers["Content-Range"] = f"0-9/{len(users)}"
+    return ds

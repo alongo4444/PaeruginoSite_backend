@@ -4,7 +4,7 @@ import pandas as pd
 from fastapi.responses import FileResponse,HTMLResponse
 from app.db.session import get_db
 from app.db.crud import (
-    get_strains,get_strains_names
+    get_strains, get_strains_names, get_defense_systems_of_genes
 )
 import numpy as np
 from pathlib import Path
@@ -214,18 +214,21 @@ async def phylogenetic_tree(
 )
 async def strain_circos_graph(strain_name, response: Response):
     # the structure of the dir file will be stain_name.html and it will be stored in a specific directory.
-    strain_file = Path("static/"+strain_name+".txt")
+    strain_file = Path("static/"+strain_name+".html")
     if strain_file.is_file():
-        '''
-        f = open(strain_file, "r", encoding='utf-8')
-        text = f.read()
-        stopwords = ['<!DOCTYPE html>', '<html>', '</html>']
-        for word in stopwords:
-            if word in text:
-                text = text.replace(word, "")
-        '''
         return FileResponse(strain_file, status_code=200)
     else:
         # file is not in the directory (the strain name is wrong)
-        return Response(status_code=400)
+        return Response(content="No Results", status_code=400)
 
+
+@r.get(
+    "/strainGenesDefSystems/{strain_name}",
+    response_model_exclude_none=True,
+    status_code=200,
+)
+async def get_genes_def_systems(strain_name, response: Response, db=Depends(get_db)):
+    df = get_defense_systems_of_genes(db, strain_name)
+    if df == 'No Results':
+        return Response(content="No Results", status_code=400)
+    return df
