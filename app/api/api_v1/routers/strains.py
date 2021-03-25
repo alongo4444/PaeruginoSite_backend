@@ -12,8 +12,9 @@ from typing import List, Optional
 from sorting_techniques import pysort
 import hashlib
 import json
+from pathlib import Path
 
-
+strains_router = r = APIRouter()
 
 def random_color():
     rand = lambda: np.random.randint(100, 255)
@@ -44,7 +45,6 @@ def load_colors():
 
 
 sortObj = pysort.Sorting()
-strains_router = r = APIRouter()
 colors = load_colors()
 def_sys = ['SHEDU', 'RM', 'PAGOS', 'SEPTU', 'THOERIS', 'WADJET', 'ZORYA', 'ABI', 'BREX', 'CRISPR', 'DISARM', 'DND',
            'DRUANTIA', 'GABIJA', 'HACHIMAN', 'KIWA', 'LAMASSU']
@@ -77,6 +77,7 @@ async def phylogenetic_tree(
 ):
     """Get all strains"""
     # generating filename
+    myPath = str(Path().resolve()).replace('\\','/')+'/static/def_Sys'
     subtreeSort = []
     if len(systems) > 0:
         systems.sort()
@@ -126,7 +127,7 @@ async def phylogenetic_tree(
                     """
         layer = 0
         query = query + """
-             dat1 <- read.csv("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/Defense_sys.csv")
+             dat1 <- read.csv('"""+myPath+"""/Defense_sys.csv')
                 """
         for sys in systems:
             color = colors[sys]
@@ -176,7 +177,7 @@ async def phylogenetic_tree(
 
         resolution = get_resolution(len(subtreeSort))
         query = query + """
-            png("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/""" + filename + """.png", units="cm", width=""" +str(resolution)+""", height="""+str(resolution)+""", res=100)
+            png("""+'"'+myPath+'/'+ filename + """.png", units="cm", width=""" +str(resolution)+""", height="""+str(resolution)+""", res=100)
             plot(p)
             dev.off(0)"""
 
