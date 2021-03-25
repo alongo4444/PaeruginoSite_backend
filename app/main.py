@@ -56,5 +56,7 @@ app.include_router(genes_router, prefix="/api/v1/genes", tags=["genes"])
 app.include_router(strains_router, prefix="/api/v1/strains", tags=["strains"])
 app.include_router(cluster_router, prefix="/api/v1/cluster", tags=["cluster"])
 
+
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1",reload=True,reload_dirs=["./api","./db"], port=8800)
