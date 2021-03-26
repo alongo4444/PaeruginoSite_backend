@@ -203,11 +203,13 @@ def get_strain_id_name(db: Session, df_cluster):
     merge_df = merge_df.fillna(0)
     return merge_df
 
-def get_gene_by_strain(db: Session,strain_name):
-
-
-    return 0
-
+'''
+this function used to get all the genes of a certain assembly of a strain  
+'''
+def get_gene_by_strain(db: Session,strain_id):
+    my_query = "SELECT locus_tag FROM \"Genes\" WHERE assembly = '{}'".format(strain_id)
+    results = db.execute(my_query).fetchall()
+    return results
 
 def parse_circos_html(html_file):
     with open(html_file, encoding='utf8') as infile:

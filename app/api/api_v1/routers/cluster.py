@@ -12,7 +12,7 @@ from starlette.responses import FileResponse
 
 from app.db.session import get_db
 from app.db.crud import (
-    get_genes, get_strains_cluster, get_strain_id_name, get_strains, get_defense_system_names
+    get_genes, get_strains_cluster, get_strain_id_name, get_strains, get_defense_system_names, get_gene_by_strain
 )
 
 from app.db.schemas import GeneBase
@@ -35,13 +35,12 @@ def get_resolution(x):
 )
 async def cluster_tree(
         gene_name,
-        strain_name,
         response_model_exclude_none=True,
         status_code=200,
         db=Depends(get_db)
 ):
     """Get all strains"""
-    strains = get_strains_cluster(db,strain_name, gene_name)
+    strains = get_strains_cluster(db, gene_name)
     cluster_id = str(strains[0])  # cluster id is used for the hash id used for later
     filenameHash = hashlib.md5(cluster_id.encode())
     filename = filenameHash.hexdigest()
@@ -153,7 +152,6 @@ async def cluster_tree(
 
     return False
 
-
 @r.get(
     "/get_gene_strain/{strain_name}",
     # response_model=t.List[GeneBase],
@@ -167,6 +165,29 @@ async def get_gene_strain(
 ):
     gene = get_genes(db)  # need to add strains name to the function
     list_genes = [d.get('locus_tag_copy') for d in gene]
+    return list_genes
+
+'''
+this function used to get all the genes of a certain assembly of a strain  
+'''
+@r.get(
+    "/get_gene_strain_id/{strain_id}",
+    # response_model=t.List[GeneBase],
+    response_model_exclude_none=True,
+)
+async def get_gene_strain_id(
+        strain_id,
+        response_model_exclude_none=True,
+        status_code=200,
+        db=Depends(get_db)
+):
+    gene = get_gene_by_strain(db,strain_id)
+    # need to add strains name to the function
+    list_genes = []
+    for row in gene:
+        d = dict(row.items())
+        list_genes.append(d['locus_tag'])
+    #list_genes = [d.get('locus_tag') for d in gene]
     return list_genes
 
 @r.get(
