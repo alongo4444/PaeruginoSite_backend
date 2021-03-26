@@ -155,6 +155,18 @@ def get_genes(db: Session):
     #return db.query(models.Genes).all()
     # return db.query(models.Genes).all()
 
+def get_strains_index(db: Session):
+    """
+    this function returns from DB a JSON with 2 keys: index of strains and name of strain.
+    """
+    result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain).all()
+    df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain'])
+    df_from_records = df_from_records.rename(columns={"strain": "name"})
+    result = df_from_records.to_json(orient="records")
+    parsed = json.loads(result)
+    json.dumps(parsed, indent=4)
+    return parsed
+
 def get_strains(db: Session):
     result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain, models.Strains.level,
                                                     models.Strains.gc, models.Strains.size,

@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Request, Depends, Response, encoders, Query
+from fastapi import APIRouter, Depends, Response, Query,HTTPException
 import subprocess, os
 import pandas as pd
 from fastapi.responses import FileResponse,HTMLResponse
 from app.db.session import get_db
 from app.db.crud import (
-    get_strains, get_strains_names, get_defense_systems_of_genes
+    get_strains, get_strains_names, get_defense_systems_of_genes,get_strains_index
 )
 import numpy as np
 from pathlib import Path
@@ -12,40 +12,67 @@ from typing import List, Optional
 from sorting_techniques import pysort
 import hashlib
 import json
+from pathlib import Path
 
-
+strains_router = r = APIRouter()
 
 def random_color():
+    ## this method generate a random color in hex form
     rand = lambda: np.random.randint(100, 255)
     return '#%02X%02X%02X' % (rand(), rand(), rand())
 
-from bs4 import BeautifulSoup
-from bs4.element import Tag
+def get_font_size(x):
+    """
+    this function gets the number of strains the user want to show and return compatible font size
+    """
+    if(x ==0):
+        return str(100)
+    return str(0.06*x+15.958)
 
-from PIL import Image
+def get_spacing(x):
+    """
+   this function gets the number of strains the user want to show and return compatible spacing in legend of graph
+   """
+    if(x ==0):
+        return str(2)
+    return str(0.001162*x+0.311)
+
+def get_offset(x):
+    """
+       this function gets the number of strains the user want to show and return compatible offset (spacing) between layers
+       """
+    if(x ==0):
+        return str(0.01)
+    return str(-0.0001*x+0.15)
 
 def get_resolution(x):
+    """
+           this function gets the number of strains the user want to show and return compatible graph resolution
+           """
     if (x == 0):
         return 300
     return 0.183 * x + 23.672
 
 
 def load_colors():
+    """
+    this function reads the colors json from static/def_sys/color.json and save it in dictionary
+    for layer coloring
+    """
     # Opening JSON file colors.json
     colors_dict = dict()
     with open("static/def_Sys/colors.json") as f:
         li = json.load(f)
         colors = [x['color'] for x in li]
-        names = [x['label'] for x in li]  # note that you use load(), not loads() to read from file
+        names = [x['label'] for x in li]
     for (x, col) in zip(names, colors):
-        colors_dict[x.upper()] = col
+        colors_dict[x.upper()] = col #save systems (key) and color(value) in dictionary and return it
 
     return colors_dict
 
 
-sortObj = pysort.Sorting()
-strains_router = r = APIRouter()
-colors = load_colors()
+sortObj = pysort.Sorting() #sorting object
+colors = load_colors() #load colors to dictionary
 def_sys = ['SHEDU', 'RM', 'PAGOS', 'SEPTU', 'THOERIS', 'WADJET', 'ZORYA', 'ABI', 'BREX', 'CRISPR', 'DISARM', 'DND',
            'DRUANTIA', 'GABIJA', 'HACHIMAN', 'KIWA', 'LAMASSU']
 
@@ -59,10 +86,21 @@ async def strains_list(
         response: Response,
         db=Depends(get_db)
 ):
-    """Get all strains"""
+    """get all the names and assembly id of all strains"""
     strains = get_strains_names(db)
-    # This is necessary for react-admin to work
-    # response.headers["Content-Range"] = f"0-9/{len(users)}"
+    return strains
+
+@r.get(
+    "/indexes",
+    # response_model=t.List[StrainBase],
+    # response_model_exclude_none=True,
+)
+async def strains_indexes(
+        response: Response,
+        db=Depends(get_db)
+):
+    """Get the index and name of all strains"""
+    strains = get_strains_index(db)
     return strains
 
 
@@ -75,8 +113,14 @@ async def phylogenetic_tree(
         subtree: Optional[List[int]] = Query([]),
         db=Depends(get_db)
 ):
-    """Get all strains"""
+    """
+    this function handles all requests to generate Phylogenetic tree from browse page in the website.
+    the function gets 2 arrays: one for the defense systems and needs to be shows and another to
+    subtrees the user might need. if they are empty: the system will show full tree with no defense systems
+    on it. this function also generate Dynamic R script in order to generate the tree.
+    """
     # generating filename
+    myPath = str(Path().resolve()).replace('\\','/')+'/static/def_Sys'
     subtreeSort = []
     if len(systems) > 0:
         systems.sort()
@@ -126,7 +170,7 @@ async def phylogenetic_tree(
                     """
         layer = 0
         query = query + """
-             dat1 <- read.csv("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/Defense_sys.csv")
+             dat1 <- read.csv('"""+myPath+"""/Defense_sys.csv')
                 """
         for sys in systems:
             color = colors[sys]
@@ -139,15 +183,16 @@ async def phylogenetic_tree(
                                         orientation="y",
                                         width=1,
                                         pwidth=0.05,
+                                        offset = """ + get_offset(len(subtreeSort)) + """,
                                         stat="identity",
                                         fill='""" + color + """'
                                       ) + theme(
                                       
-                                        legend.text = element_text(size = 100),
+                                        legend.text = element_text(size = """ + get_font_size(len(subtreeSort))+"""),
                                         legend.title = element_blank(),
                                         legend.margin=margin(c(0,200,0,0)),
-                                        legend.spacing = unit(2,"cm"),
-                                        legend.spacing.x = unit(2,"cm")
+                                        legend.spacing = unit(""" +get_spacing(len(subtreeSort))+""","cm"),
+                                        legend.spacing.x = unit("""+get_spacing(len(subtreeSort))+""","cm")
                                       )+
                                         scale_colour_manual(values = c('""" + color + """'), labels = c('""" + sys + """'))
                                       """
@@ -160,15 +205,15 @@ async def phylogenetic_tree(
                                         orientation="y",
                                         width=1,
                                         pwidth=0.05,
-                                        offset=0.01,
+                                        offset = """ + get_offset(len(subtreeSort)) + """,
                                         stat="identity",
                                         fill='""" + color + """'
                                       ) + theme(
                                         legend.margin=margin(c(0,200,0,0)),
-                                        legend.text = element_text(size = 100),
+                                        legend.text = element_text(size = """ + get_font_size(len(subtreeSort))+"""),
                                         legend.title = element_blank(),
-                                        legend.spacing = unit(2,"cm"),
-                                        legend.spacing.x = unit(2,"cm")
+                                        legend.spacing = unit(""" +get_spacing(len(subtreeSort))+""","cm"),
+                                        legend.spacing.x = unit("""+get_spacing(len(subtreeSort))+""","cm")
                                       )+
                                         scale_colour_manual(values = c('""" + color + """'), labels = c('""" + sys + """'))
                                       """
@@ -176,7 +221,7 @@ async def phylogenetic_tree(
 
         resolution = get_resolution(len(subtreeSort))
         query = query + """
-            png("C:/Users/yinon/PycharmProjects/PaeruginoSite_backend/app/static/def_Sys/""" + filename + """.png", units="cm", width=""" +str(resolution)+""", height="""+str(resolution)+""", res=100)
+            png("""+'"'+myPath+'/'+ filename + """.png", units="cm", width=""" +str(resolution)+""", height="""+str(resolution)+""", res=100)
             plot(p)
             dev.off(0)"""
 
@@ -199,11 +244,11 @@ async def phylogenetic_tree(
             print("dbc2csv - Error converting file: phylo_tree.R")
             print(e)
 
-            return False
+            raise HTTPException(status_code=404, detail=e)
     else:
         return FileResponse('static/def_Sys/' + filename + ".png")
 
-    return False
+    raise HTTPException(status_code=404, detail="e")
 
 
 @r.get(
