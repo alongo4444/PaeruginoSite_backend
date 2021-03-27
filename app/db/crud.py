@@ -200,20 +200,26 @@ def get_strains_names(db: Session):
     return parsed
     #return df_from_records.to_csv()
 
+'''
+this function get all the strains of a certain gene in a cluster
+'''
+def get_strains_cluster(db: Session,strains_genes):
+    list_strains = []
+    for s_g in strains_genes:
+        split = s_g.split('-')
+        my_query = "SELECT index,combined_index FROM \"Cluster\" WHERE {} LIKE '%{}%'".format(split[0],split[1])
+        results = db.execute(my_query).fetchall()
+        if(len(results) >0):
+            list_strains.append(results[0])
+    return list_strains
 
-def get_strains_cluster(db: Session,gene_name):
-    my_query = "SELECT index,combined_index FROM \"Cluster\" WHERE (PA14 LIKE '%{}%') OR (PAO1 LIKE '%{}%')".format(gene_name,gene_name)
-    results = db.execute(my_query).fetchall()
-    result = results[0]
-    return result
-
-
-def get_strain_id_name(db: Session, df_cluster):
+'''
+this function merge the cluster strains result with all of the strains in the system
+'''
+def get_strain_id_name(db: Session):
     result = db.query(models.Strains).with_entities(models.Strains.index,models.Strains.strain).all()
     df_from_records = pd.DataFrame.from_records(result, index='index', columns=['index','strain',])
-    merge_df = pd.merge(df_from_records, df_cluster,how='left', on="index")
-    merge_df = merge_df.fillna(0)
-    return merge_df
+    return df_from_records
 
 '''
 this function used to get all the genes of a certain assembly of a strain  

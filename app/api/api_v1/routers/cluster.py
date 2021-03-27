@@ -29,20 +29,22 @@ def get_resolution(x):
 
 
 @r.get(
-    "/cluster_tree/{gene_name}",
+    "/cluster_tree",
     # response_model=t.List[GeneBase],
     response_model_exclude_none=True,
 )
 async def cluster_tree(
-        gene_name,
+        list_strain_gene: List[str] = Query(None),
         response_model_exclude_none=True,
         status_code=200,
         db=Depends(get_db)
 ):
     """Get all strains"""
-    strains = get_strains_cluster(db, gene_name)
-    cluster_id = str(strains[0])  # cluster id is used for the hash id used for later
-    filenameHash = hashlib.md5(cluster_id.encode())
+    list_strains = get_strains_cluster(db, list_strain_gene)
+    cluster_ids = ""
+    for l in list_strains:
+        cluster_ids += str(l[0])+'_'  # cluster id is used for the hash id used for later
+    filenameHash = hashlib.md5(cluster_ids.encode())
     filename = filenameHash.hexdigest()
     my_file = Path(r'static/cluster/' + filename + ".png")
     if not os.path.exists(my_file):
@@ -50,12 +52,20 @@ async def cluster_tree(
         # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
         arg = '--vanilla'
         # data preprocessing for the R query
-        dict_id_strain = json.loads(strains[1].replace("'", "\""))
-        data_id_strain = pd.DataFrame(dict_id_strain.items(), columns=['index', 'count'])
-        data_id_strain['index'] = data_id_strain['index'].astype(int)
-        complet_data = get_strain_id_name(db, data_id_strain)
-        complet_data['count'] = complet_data['count']
-        complet_data.to_csv(r'static/cluster/cluster.csv', index=False)
+        all_strain_id = get_strain_id_name(db)
+        for i in range(len(list_strains)):
+            dict_id_strain = json.loads(list_strains[i][1].replace("'", "\""))
+            data_id_strain = pd.DataFrame(dict_id_strain.items(), columns=['index', 'count' + str(i)])
+            data_id_strain['index'] = data_id_strain['index'].astype(int)
+
+            all_strain_id = pd.merge(all_strain_id, data_id_strain, how='left', on="index")
+            all_strain_id = all_strain_id.fillna(0)
+        # dict_id_strain = json.loads(strains[1].replace("'", "\""))
+        # data_id_strain = pd.DataFrame(dict_id_strain.items(), columns=['index', 'count'])
+        # data_id_strain['index'] = data_id_strain['index'].astype(int)
+        # complet_data = get_strain_id_name(db, data_id_strain)
+        # complet_data['count'] = complet_data['count']
+        all_strain_id.to_csv(r'static/cluster/cluster.csv', index=False)
         subtreeSort = []
         # R query build-up
         query = """
@@ -71,17 +81,16 @@ async def cluster_tree(
         query = query + """
             p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5) + geom_tiplab()
                     """
-        layer = 0
         query = query + """
              dat1 <- read.csv("C:/Users/idoef/PycharmProjects/PaeruginoSite_backend/app/static/cluster/cluster.csv")
                 """
-        layer = 0
-        if (layer == 0):
+        layer = len(list_strains)
+        if (layer >= 1):
             query = query + """p <- p + new_scale_fill() +
                                   geom_fruit(
                                     data=dat1,
                                     geom=geom_bar,
-                                    mapping=aes(y=index,x=count, colour=c('red')),
+                                    mapping=aes(y=index,x=count0, colour=c('red')),
                                     orientation="y",
                                     width=1,
                                     pwidth=0.05,
@@ -95,31 +104,50 @@ async def cluster_tree(
                                     legend.spacing = unit(2,"cm"),
                                     legend.spacing.x = unit(2,"cm")
                                   )+
-                                    scale_colour_manual(values = c('red'), labels = c('""" + gene_name + """'))
+                                    scale_colour_manual(values = c('red'), labels = c('""" + list_strain_gene[0].split('-')[1] + """'))
                                   """
-        if (layer > 0):
-            query = query + """p <- p + new_scale_colour()+
+        if (layer >= 2):
+            query = query + """p <- p + new_scale_fill() +
                                   geom_fruit(
                                     data=dat1,
                                     geom=geom_bar,
-                                    mapping=aes(y=index,x=count, colour=c('""blue""')),
+                                    mapping=aes(y=index,x=count1, colour=c("red")),
                                     orientation="y",
                                     width=1,
                                     pwidth=0.05,
-                                    offset=0.01,
                                     stat="identity",
-                                    fill='""blue ""'
+                                    fill="red"
                                   ) + theme(
-                                    legend.margin=margin(c(0,200,0,0)),
+
                                     legend.text = element_text(size = 100),
                                     legend.title = element_blank(),
+                                    legend.margin=margin(c(0,200,0,0)),
                                     legend.spacing = unit(2,"cm"),
                                     legend.spacing.x = unit(2,"cm")
                                   )+
-                                    scale_colour_manual(values = c('""blue""'), labels = c('"" ""'))
+                                    scale_colour_manual(values = c("red"), labels = c('""" + list_strain_gene[1].split('-')[1] + """'))
                                   """
-        layer += 1
+        if (layer >= 3):
+            query = query + """p <- p + new_scale_fill() +
+                                  geom_fruit(
+                                    data=dat1,
+                                    geom=geom_bar,
+                                    mapping=aes(y=index,x=count2, colour=c('red')),
+                                    orientation="y",
+                                    width=1,
+                                    pwidth=0.05,
+                                    stat="identity",
+                                    fill='red'
+                                  ) + theme(
 
+                                    legend.text = element_text(size = 100),
+                                    legend.title = element_blank(),
+                                    legend.margin=margin(c(0,200,0,0)),
+                                    legend.spacing = unit(2,"cm"),
+                                    legend.spacing.x = unit(2,"cm")
+                                  )+
+                                    scale_colour_manual(values = c('red'), labels = c('""" + list_strain_gene[2].split('-')[1] + """'))
+                                  """
         resolution = get_resolution(len(subtreeSort))
         query = query + """
             png("C:/Users/idoef/PycharmProjects/PaeruginoSite_backend/app/static/cluster/""" + filename + """.png", units="cm", width=""" + str(

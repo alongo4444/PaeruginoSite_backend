@@ -51,10 +51,10 @@ app.include_router(
     tags=["users"],
     dependencies=[Depends(get_current_active_user)],
 )
-app.include_router(auth_router, prefix="/api", tags=["auth"])
-app.include_router(genes_router, prefix="/api/genes", tags=["genes"])
-app.include_router(strains_router, prefix="/api/strains", tags=["strains"])
-app.include_router(cluster_router, prefix="/api/cluster", tags=["cluster"])
+app.include_router(auth_router, prefix="/api/v1", tags=["auth"])
+app.include_router(genes_router, prefix="/api/v1/genes", tags=["genes"])
+app.include_router(strains_router, prefix="/api/v1/strains", tags=["strains"])
+app.include_router(cluster_router, prefix="/api/v1/cluster", tags=["cluster"])
 
 
 
