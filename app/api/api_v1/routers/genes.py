@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from app.db.session import get_db
 from app.db.crud import (
-    get_genes, get_genes_download, get_genes_by_defense, prepare_file
+    get_genes, get_genes_download, get_genes_by_defense, prepare_file, prepare_zip, get_genes_by_cluster
 )
 from app.db.schemas import GeneBase
 
@@ -57,3 +57,19 @@ async def genes_by_defense(
     # This is necessary for react-admin to work
     # response.headers["Content-Range"] = f"0-9/{len(users)}"
     return prepare_file(genes_by_defense)
+
+@r.get(
+    "/genes_by_cluster",
+    #response_model=t.List[GeneBase],
+    response_model_exclude_none=True,
+)
+async def genes_by_cluster(
+        response: Response,
+        db=Depends(get_db),
+        indexC: int = Query(None), # the index of the selected cluster
+):
+    """Get all genes"""
+    genes_by_cluster = get_genes_by_cluster(db, indexC)
+    # This is necessary for react-admin to work
+    # response.headers["Content-Range"] = f"0-9/{len(users)}"
+    return prepare_file(genes_by_cluster)

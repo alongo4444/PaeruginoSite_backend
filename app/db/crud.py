@@ -1,4 +1,7 @@
 import io
+import zipfile
+import csv
+
 from bs4 import BeautifulSoup
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session ,class_mapper, defer
@@ -85,23 +88,25 @@ def get_table_names(db: Session):
 #
 # example: selectedAS = ['PAO1', 'PA14'] , ret = 'assembly_x' will return:
 #   assembly_x='PAO1' OR assembly_x='PA14'
-def selectedAS_to_query(selectedAS, ret):
+def selectedAS_to_query(selectedAS, ss):
     if not selectedAS:
         return "1=1" # if the user didn't select a strain, return all strains
     for idx,s in enumerate(selectedAS):
         if idx == 0:
-            ret = ret + "='{}'".format(s)
+            ret = ss + "='{}'".format(s)
         else:
-            ret = ret + " OR {}='{}'".format(ret,s)
+            ret = ret + " OR {}='{}'".format(ss,s)
     return ret
 
 def get_genes_download(db: Session, selectedC, selectedAS):
 
+    selectedC.insert(0, 'locus_tag')
     cols = ','.join(selectedC)
 
-    rows_q=selectedAS_to_query(selectedAS, 'assembly_x')
 
-    my_query = "SELECT {} FROM pao1_data WHERE {}".format(cols,rows_q) # Need to change the FROM TABLE to the total genes table eventually
+    rows_q=selectedAS_to_query(selectedAS, 'assembly')
+
+    my_query = "SELECT {} FROM \"Genes\" WHERE {}".format(cols,rows_q) # Need to change the FROM TABLE to the total genes table eventually
     results = db.execute(my_query).fetchall()
     df_from_records = pd.DataFrame(results, columns=selectedC)
 
@@ -246,18 +251,41 @@ def parse_circos_html(html_file):
     return res_dict
 
 # returns all the names of the defense systems
-def get_defense_system_names(db: Session):
-    my_query = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Cluster' ORDER BY ORDINAL_POSITION"
-    results = db.execute(my_query).fetchall()
-    results_ri = results[141:157] # edit if added more defense systems to the DB in the future
+def get_defense_system_names():
+
+    # try:
+    #     headers = pd.read_csv('static/def_Sys/Defense_sys.csv', index_col=0, nrows=0).columns.tolist()
+    #     ds_names = headers[2:]
+    #     for idx,h in enumerate(ds_names):
+    #         ds_names[idx] = h.replace('Defense_sys_','')
+    # except:
+    #     print("static/def_Sys/Defense_sys.csv was not found.")
+    #     return None
+
+
+    try:
+        cols = pd.read_csv('static/def_Sys/Defense_Systems_Names.csv')
+
+        print('s')
+    except:
+        print("static/def_Sys/Defense_sys.csv was not found.")
+        return None
+    ds_names = cols['Name'].apply(lambda x: x.split('|')[0])
+    ds_names = ds_names.unique()
+    ds_names = list(filter(lambda x: 'Anti-CRISPR' not in x, ds_names))
+    # ds_names = ['CRISPER-CAS' if x=='CRISPERCAS' else x for x in ds_names]
+    ds_names = sorted(ds_names)
+    # my_query = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Cluster' ORDER BY ORDINAL_POSITION"
+    # results = db.execute(my_query).fetchall()
+    # results_ri = results[141:157] # edit if added more defense systems to the DB in the future
     result_str = []
     id = 0
-    for r in results_ri:
+    for r in ds_names:
         d = {}
-        regex = re.compile('[^a-zA-Z]')
-        # First parameter is the replacement, second parameter is your input string
-        r = regex.sub('', str(r))
-        # Out: 'abdE'
+        # regex = re.compile('[^a-zA-Z]')
+        # # First parameter is the replacement, second parameter is your input string
+        # r = regex.sub('', str(r))
+        # # Out: 'abdE'
         d['name'] = r
         d['key'] = id
         id += 1
@@ -265,52 +293,53 @@ def get_defense_system_names(db: Session):
 
     return result_str
 
+# prepares the "where" query, gets the selected options from the user and adds it to the field we what to filter by
+#
+# example: selectedAS = ['PAO1', 'PA14'] , ret = 'assembly_x' will return:
+#   assembly_x='PAO1' OR assembly_x='PA14'
+def selectedAS_to_query_contains_str(selectedAS):
+    ss = "defense_system LIKE "
+    if not selectedAS:
+        return "1=1" # if the user didn't select a defense system, return all genes
+    for idx,s in enumerate(selectedAS):
+        if idx == 0:
+            ret = ss + "'%{}%'".format(s)
+        else:
+            ret = ret + " OR " + ss + "'%{}%'".format(s)
+    return ret
+
 # returns a dataframe with the genes information of the system defenses in selectedAS with the columns in selectedC.
 def get_genes_by_defense(db: Session, selectedC, selectedAS):
 
-    # s_names_l = get_strains_names(db)
-    s_names = []
+    # if the user didn't select any defense system, return all:
+    if not selectedAS:
+        ds_names = get_defense_system_names()
+        selectedAS = [x['name'] for x in ds_names]
 
-    # for l in s_names_l:
-    #     if isinstance(l['name'], str):
-    #         s_names.append("\'{}\'".format(l['name']))
-
-    s_names.append('PAO1')
-    s_names.append('PA14')
-
-    ds = ','.join(s_names)
-
+    # make a list of tuples to be imported to a dataframe later
     genes_ds = []
     for s in selectedAS:
-        ret = s + "=1"
-
-        my_query = "SELECT {} FROM \"Cluster\" WHERE {}".format(ds,ret)  # Need to change the FROM TABLE to the total genes table eventually
+        my_query = "SELECT full_locus FROM \"Genes_Defence_Systems\" WHERE defense_system LIKE '%{}%'".format(s)
         results = db.execute(my_query).fetchall()
 
         for r in results:
             for t in r:
-                if t == '-':
-                    continue
-                s_ds = t.split(';')
-                for s_name in s_ds:
-                    if s_name == '-':
-                        continue
-                    new_row = (s_name,s)
-                    genes_ds.append(new_row)
+                s_name = t.split('|')[0]
+                new_row = (s_name,s)
+                genes_ds.append(new_row)
 
-    df_genes_ds = pd.DataFrame(genes_ds, columns=['locus_tag', 'ds_name']) # currently holds the genes and the defense system names (i.e: [PA2735, brex])
+    df_genes_ds = pd.DataFrame(genes_ds, columns=['locus_tag', 'ds_name']) # import list of tuples to a dataframe. currently holds the genes and the defense system names (i.e: [PA2735, brex])
 
     selectedC_copy = selectedC.copy()
 
-    for idx,s in enumerate(selectedC):
-        selectedC[idx] = "\"" + s + "\""
-    selectedC.insert(0,'\"locus_tag\"')
+    for idx,s in enumerate(selectedC_copy):
+        selectedC_copy[idx] = "\"" + s + "\""
+    selectedC.insert(0,'locus_tag')
     selectedC_copy.insert(0, "locus_tag")
-    cols = ', '.join(selectedC)
+    cols = ', '.join(selectedC_copy)
     my_query = "SELECT {} FROM \"Genes\"".format(cols)  # Get all genes
     results = db.execute(my_query).fetchall()
-    df_genes_info = pd.DataFrame(results, columns=selectedC_copy)
-
+    df_genes_info = pd.DataFrame(results, columns=selectedC)
     result = df_genes_ds.merge(df_genes_info)
 
     return result
@@ -331,6 +360,35 @@ def prepare_file(dafaframe):
 
     return response
 
+# returns a zip file of a several CSV of dataframes to the frontend
+def prepare_zip(dafaframes):
+
+    outfile = io.BytesIO()
+    with zipfile.ZipFile(outfile, 'w') as zf:
+        for n, f in enumerate(dafaframes):
+            string_buffer = io.StringIO()
+            string_buffer.write(f.to_csv(index=False))
+            zf.writestr("{}.csv".format(n), string_buffer.getvalue())
+
+        outfile.seek(0)
+        # Returns a csv prepared to be downloaded in the FrontEnd
+        response = StreamingResponse(outfile,
+                                     media_type="application/x-zip-compressed"
+                                     )
+
+        response.headers["Content-Disposition"] = "attachment; filename=test.zip"
+
+        return response
+
+    # zipped_file = zipFiles(dafaframes)
+    return response
+
+def zipFiles(dafaframes):
+    outfile = "export.zip"
+    with zipfile.ZipFile(outfile, 'w') as zf:
+        for n, f in enumerate(dafaframes):
+            zf.writestr("{}.csv".format(str(n)), pd.DataFrame(f).to_csv())
+        return zf
 
 def get_defense_systems_of_genes(db: Session, strain_name):
     """
@@ -350,3 +408,28 @@ def get_defense_systems_of_genes(db: Session, strain_name):
     else:
         df = df.to_dict('records')
     return df
+
+
+def get_genes_by_cluster(db: Session, indexC):
+    my_query = "SELECT * FROM \"Cluster\" WHERE index={}".format(indexC)
+    results = db.execute(my_query).fetchall()
+    row = results[0][1:-1]
+
+    genes_ds = []
+    for t in row:
+        if t == '-':
+            continue
+        s_ds = t.split(';')
+        for s_name in s_ds:
+            if s_name == '-':
+                continue
+            genes_ds.append(s_name)
+
+    col_names =['genomic_accession','start_g','end_g','strand','attributes_x','product_accession','nonredundant_refseq','name']
+    cols = ', '.join(col_names)
+    genes = selectedAS_to_query(genes_ds,'locus_tag')
+    my_query = "SELECT {} FROM \"Genes\" WHERE {}".format(cols, genes)
+    results = db.execute(my_query).fetchall()
+    df_from_records = pd.DataFrame(results, columns=col_names)
+
+    return df_from_records
