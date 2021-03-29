@@ -66,10 +66,10 @@ async def genes_by_defense(
 async def genes_by_cluster(
         response: Response,
         db=Depends(get_db),
-        indexC: int = Query(None), # the index of the selected cluster
+        genes: List[str] = Query(None), # the index of the selected cluster
 ):
     """Get all genes"""
-    genes_by_cluster = get_genes_by_cluster(db, indexC)
+    genes_by_cluster = get_genes_by_cluster(db, genes)
     # This is necessary for react-admin to work
     # response.headers["Content-Range"] = f"0-9/{len(users)}"
     return prepare_file(genes_by_cluster)
