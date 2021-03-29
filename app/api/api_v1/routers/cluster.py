@@ -10,6 +10,7 @@ from pathlib import Path
 from sorting_techniques import pysort
 from starlette.responses import FileResponse
 
+from app.api.api_v1.routers.strains import get_offset, get_font_size, get_spacing, get_resolution
 from app.db.session import get_db
 from app.db.crud import (
     get_genes, get_strains_cluster, get_strain_id_name, get_strains, get_defense_system_names, get_gene_by_strain
@@ -22,10 +23,10 @@ cluster_router = r = APIRouter()
 sortObj = pysort.Sorting()
 
 
-def get_resolution(x):
-    if (x == 0):
-        return 300
-    return 300  # 0.183 * x + 23.672
+# def get_resolution(x):
+#     if (x == 0):
+#         return 300
+#     return 300  # 0.183 * x + 23.672
 
 
 @r.get(
@@ -35,15 +36,14 @@ def get_resolution(x):
 )
 async def cluster_tree(
         list_strain_gene: List[str] = Query(None),
-        response_model_exclude_none=True,
-        status_code=200,
+        subtree: Optional[List[int]] = Query([]),
         db=Depends(get_db)
 ):
     """Get all strains"""
     list_strains = get_strains_cluster(db, list_strain_gene)
     cluster_ids = ""
     for l in list_strains:
-        cluster_ids += str(l[0])+'_'  # cluster id is used for the hash id used for later
+        cluster_ids += str(l[0]) + '_'  # cluster id is used for the hash id used for later
     filenameHash = hashlib.md5(cluster_ids.encode())
     filename = filenameHash.hexdigest()
     my_file = Path(r'static/cluster/' + filename + ".png")
@@ -65,8 +65,11 @@ async def cluster_tree(
         # data_id_strain['index'] = data_id_strain['index'].astype(int)
         # complet_data = get_strain_id_name(db, data_id_strain)
         # complet_data['count'] = complet_data['count']
-        all_strain_id.to_csv(r'static/cluster/cluster.csv', index=False)
         subtreeSort = []
+        if len(subtree) > 0:
+            subtreeSort = sortObj.radixSort(subtree)
+            all_strain_id = all_strain_id.loc[all_strain_id['index'].isin(subtree)]
+        all_strain_id.to_csv(r'static/cluster/cluster.csv', index=False)
         # R query build-up
         query = """
                     library(ggtreeExtra)
@@ -78,6 +81,11 @@ async def cluster_tree(
                     library(ape)
                     trfile <- system.file("extdata","our_tree.tree", package="ggtreeExtra")
                     tree <- read.tree(trfile) """
+        if len(subtree) > 0:
+            query = query + """
+                subtree =c(""" + ",".join('"' + str(x) + '"' for x in subtreeSort) + """)
+                tree <- keep.tip(tree,subtree)
+                   """
         query = query + """
             p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5) + geom_tiplab()
                     """
@@ -98,57 +106,61 @@ async def cluster_tree(
                                     fill='red'
                                   ) + theme(
 
-                                    legend.text = element_text(size = 100),
+                                    legend.text = element_text(size = "6"),
                                     legend.title = element_blank(),
                                     legend.margin=margin(c(0,200,0,0)),
-                                    legend.spacing = unit(2,"cm"),
-                                    legend.spacing.x = unit(2,"cm")
+                                    legend.spacing = unit("0.02","cm"),
+                                    legend.spacing.x = unit("0.02","cm")
                                   )+
-                                    scale_colour_manual(values = c('red'), labels = c('""" + list_strain_gene[0].split('-')[1] + """'))
+                                    scale_colour_manual(values = c('red'), labels = c('""" + \
+                    list_strain_gene[0].split('-')[1] + """'))
                                   """
         if (layer >= 2):
-            query = query + """p <- p + new_scale_fill() +
+            query = query + """p <- p + new_scale_colour() +
                                   geom_fruit(
                                     data=dat1,
                                     geom=geom_bar,
-                                    mapping=aes(y=index,x=count1, colour=c("red")),
+                                    mapping=aes(y=index,x=count1, colour=c("blue")),
                                     orientation="y",
                                     width=1,
                                     pwidth=0.05,
                                     stat="identity",
-                                    fill="red"
+                                    fill="blue"
                                   ) + theme(
 
-                                    legend.text = element_text(size = 100),
+                                    legend.text = element_text(size = "6"),
                                     legend.title = element_blank(),
                                     legend.margin=margin(c(0,200,0,0)),
-                                    legend.spacing = unit(2,"cm"),
-                                    legend.spacing.x = unit(2,"cm")
+                                    legend.spacing = unit("0.2","cm"),
+                                    legend.spacing.x = unit("0.2","cm")
                                   )+
-                                    scale_colour_manual(values = c("red"), labels = c('""" + list_strain_gene[1].split('-')[1] + """'))
+                                    scale_colour_manual(values = c("blue"), labels = c('""" + \
+                    list_strain_gene[1].split('-')[1] + """'))
                                   """
         if (layer >= 3):
-            query = query + """p <- p + new_scale_fill() +
+            query = query + """p <- p + new_scale_colour() +
                                   geom_fruit(
                                     data=dat1,
                                     geom=geom_bar,
-                                    mapping=aes(y=index,x=count2, colour=c('red')),
+                                    mapping=aes(y=index,x=count2, colour=c('green')),
                                     orientation="y",
                                     width=1,
                                     pwidth=0.05,
                                     stat="identity",
-                                    fill='red'
+                                    fill='green'
                                   ) + theme(
 
-                                    legend.text = element_text(size = 100),
+                                    legend.text = element_text(size = """ + get_font_size(len(subtreeSort)) + """),
                                     legend.title = element_blank(),
                                     legend.margin=margin(c(0,200,0,0)),
-                                    legend.spacing = unit(2,"cm"),
-                                    legend.spacing.x = unit(2,"cm")
+                                    legend.spacing = unit("0.2","cm"),
+                                    legend.spacing.x = unit("0.2","cm")
                                   )+
-                                    scale_colour_manual(values = c('red'), labels = c('""" + list_strain_gene[2].split('-')[1] + """'))
+                                    scale_colour_manual(values = c('green'), labels = c('""" + \
+                    list_strain_gene[2].split('-')[1] + """'))
                                   """
         resolution = get_resolution(len(subtreeSort))
+        resolution = 300
         query = query + """
             png("C:/Users/idoef/PycharmProjects/PaeruginoSite_backend/app/static/cluster/""" + filename + """.png", units="cm", width=""" + str(
             resolution) + """, height=""" + str(resolution) + """, res=100)
@@ -180,6 +192,7 @@ async def cluster_tree(
 
     return False
 
+
 @r.get(
     "/get_gene_strain/{strain_name}",
     # response_model=t.List[GeneBase],
@@ -195,9 +208,12 @@ async def get_gene_strain(
     list_genes = [d.get('locus_tag_copy') for d in gene]
     return list_genes
 
+
 '''
 this function used to get all the genes of a certain assembly of a strain  
 '''
+
+
 @r.get(
     "/get_gene_strain_id/{strain_id}",
     # response_model=t.List[GeneBase],
@@ -209,14 +225,15 @@ async def get_gene_strain_id(
         status_code=200,
         db=Depends(get_db)
 ):
-    gene = get_gene_by_strain(db,strain_id)
+    gene = get_gene_by_strain(db, strain_id)
     # need to add strains name to the function
     list_genes = []
     for row in gene:
         d = dict(row.items())
         list_genes.append(d['locus_tag'])
-    #list_genes = [d.get('locus_tag') for d in gene]
+    # list_genes = [d.get('locus_tag') for d in gene]
     return list_genes
+
 
 @r.get(
     "/get_defense_system_names/",
