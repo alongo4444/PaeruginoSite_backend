@@ -356,7 +356,8 @@ def get_genes_by_defense(db: Session, selectedC, selectedAS):
 
 
 # returns a csv file of a dataframe to the frontend
-def prepare_file(dafaframe):
+def prepare_csv_file(dafaframe):
+    dafaframe = dafaframe.drop(columns=['protein_sequence','dna_sequence'])
     stream = io.StringIO()
 
     dafaframe.to_csv(stream, index=False)
@@ -420,26 +421,88 @@ def get_defense_systems_of_genes(db: Session, strain_name):
     return df
 
 
-def get_genes_by_cluster(db: Session, indexC):
-    my_query = "SELECT * FROM \"Cluster\" WHERE index={}".format(indexC)
-    results = db.execute(my_query).fetchall()
-    row = results[0][1:-1]
+def value_loc(value, df):
+    for col in list(df):
+        if  df[col].values.find(value) != -1:
+            return (list(df).index(col), df[col][df[col].find(value) != -1].index[0])
 
-    genes_ds = []
-    for t in row:
-        if t == '-':
+def get_genes_by_cluster(db: Session, genes):
+
+    my_query = "SELECT * FROM \"Cluster\""
+    results = db.execute(my_query)
+    col_names = results.keys()
+    results = results.fetchall()
+    df_from_records = pd.DataFrame.from_records(results, columns=col_names)
+    first_column = df_from_records.columns[0]
+    last_column = df_from_records.columns[-1]
+    # filter only the strains columns
+    df_from_records_copy = df_from_records.drop([first_column], axis=1)
+    df_from_records_copy = df_from_records_copy.drop([last_column], axis=1)
+
+    genes_cluster = []
+    frames = []
+    # search the cluster index to get the other genes in the same cluster
+    for g in genes:
+        if g=='':
             continue
-        s_ds = t.split(';')
-        for s_name in s_ds:
-            if s_name == '-':
+        cluster_index = -1
+        for c in df_from_records_copy.columns:
+            b = df_from_records_copy[c].str.contains(r'{}'.format(g))
+            a = b[b == True]
+            if not a.empty:
+                cluster_index = df_from_records['index'][a.index[0]] # found the cluster index number
+                strain = c
+                break
+        if cluster_index == -1:
+            continue
+        dfb = df_from_records[df_from_records['index'] == cluster_index].index.values.astype(int)[0]
+        row = df_from_records.iloc[dfb]
+        row_v = row[1:-1]
+
+        # extract the other genes names in the same cluster
+        for t in row_v:
+            strain = row_v[row_v == t].index[0] # get the strain of the current gene
+            if t == '-':
                 continue
-            genes_ds.append(s_name)
+            s_ds = t.split(';')
+            for s_name in s_ds:
+                if s_name == '-':
+                    continue
+                tup = (s_name, strain, cluster_index)
+                genes_cluster.append(tup)
 
-    col_names =['genomic_accession','start_g','end_g','strand','attributes_x','product_accession','nonredundant_refseq','name']
-    cols = ', '.join(col_names)
-    genes = selectedAS_to_query(genes_ds,'locus_tag')
-    my_query = "SELECT {} FROM \"Genes\" WHERE {}".format(cols, genes)
-    results = db.execute(my_query).fetchall()
-    df_from_records = pd.DataFrame(results, columns=col_names)
+        df_from_records_g = pd.DataFrame.from_records(genes_cluster, columns=['locus_tag','strain_name','cluster_index'])
 
-    return df_from_records
+
+        col_names =['locus_tag','genomic_accession','start_g','end_g','strand','attributes_x','product_accession','nonredundant_refseq','name','protein_sequence','dna_sequence']
+        cols = ', '.join(col_names)
+        my_query = "SELECT {} FROM \"Genes\"".format(cols)
+        results = db.execute(my_query).fetchall()
+        df_from_records_all_genes = pd.DataFrame(results, columns=col_names)
+        frames.append(df_from_records_g.merge(df_from_records_all_genes))
+
+    return pd.concat(frames).drop_duplicates() # return a single dataframe with all of the genes info in the same cluster
+
+
+def prepare_fasta_file(df, prot):
+    final_txt = ""
+    for index, row in df.iterrows():
+        locus_tag, start_g, end_g, name, g_accession  = row['locus_tag'], row['start_g'], row['end_g'], row['name'], row['genomic_accession']
+        seq = row['protein_sequence'] if prot else row['dna_sequence']
+        every = 80
+        seq = '\n'.join(seq[i:i+every] for i in range(0, len(seq), every))
+        type = 'prot' if prot else 'dna'
+        newentry = ">lcl|{}_{} [locus_tag = {}] [location = {}..{}] [name = {}] \n {} \n".format(g_accession,type,locus_tag,start_g,end_g,name,seq)
+        final_txt += newentry
+
+    output = io.StringIO()
+    output.write(final_txt)
+
+    #Returns a csv prepared to be downloaded in the FrontEnd
+    response = StreamingResponse(iter([output.getvalue()]),
+                                 media_type="text/plain"
+                                 )
+
+    response.headers["Content-Disposition"] = "attachment; filename=export.txt"
+
+    return response
