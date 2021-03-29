@@ -47,6 +47,7 @@ async def cluster_tree(
     filenameHash = hashlib.md5(cluster_ids.encode())
     filename = filenameHash.hexdigest()
     my_file = Path(r'static/cluster/' + filename + ".png")
+    myPath = str(Path().resolve()).replace('\\','/')+'/static/cluster'
     if not os.path.exists(my_file):
         command = 'C:/Program Files/R/R-4.0.4/bin/Rscript.exe'
         # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
@@ -90,7 +91,7 @@ async def cluster_tree(
             p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5) + geom_tiplab()
                     """
         query = query + """
-             dat1 <- read.csv("C:/Users/idoef/PycharmProjects/PaeruginoSite_backend/app/static/cluster/cluster.csv")
+             dat1 <- read.csv('"""+myPath+"""/cluster.csv')
                 """
         layer = len(list_strains)
         if (layer >= 1):
@@ -162,7 +163,7 @@ async def cluster_tree(
         resolution = get_resolution(len(subtreeSort))
         resolution = 300
         query = query + """
-            png("C:/Users/idoef/PycharmProjects/PaeruginoSite_backend/app/static/cluster/""" + filename + """.png", units="cm", width=""" + str(
+            png("""+'"'+myPath+'/'+ filename + """.png", units="cm", width=""" + str(
             resolution) + """, height=""" + str(resolution) + """, res=100)
             plot(p)
             dev.off(0)"""
