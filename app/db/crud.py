@@ -443,6 +443,8 @@ def get_genes_by_cluster(db: Session, genes):
     frames = []
     # search the cluster index to get the other genes in the same cluster
     for g in genes:
+        if g=='':
+            continue
         cluster_index = -1
         for c in df_from_records_copy.columns:
             b = df_from_records_copy[c].str.contains(r'{}'.format(g))
@@ -479,7 +481,7 @@ def get_genes_by_cluster(db: Session, genes):
         df_from_records_all_genes = pd.DataFrame(results, columns=col_names)
         frames.append(df_from_records_g.merge(df_from_records_all_genes))
 
-    return pd.concat(frames) # return a single dataframe with all of the genes info in the same cluster
+    return pd.concat(frames).drop_duplicates() # return a single dataframe with all of the genes info in the same cluster
 
 
 def prepare_fasta_file(df, prot):
