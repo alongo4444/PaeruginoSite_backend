@@ -356,7 +356,8 @@ def get_genes_by_defense(db: Session, selectedC, selectedAS):
 
 
 # returns a csv file of a dataframe to the frontend
-def prepare_file(dafaframe):
+def prepare_csv_file(dafaframe):
+    dafaframe = dafaframe.drop(columns=['protein_sequence','dna_sequence'])
     stream = io.StringIO()
 
     dafaframe.to_csv(stream, index=False)
@@ -471,7 +472,7 @@ def get_genes_by_cluster(db: Session, genes):
         df_from_records_g = pd.DataFrame.from_records(genes_cluster, columns=['locus_tag','strain_name','cluster_index'])
 
 
-        col_names =['locus_tag','genomic_accession','start_g','end_g','strand','attributes_x','product_accession','nonredundant_refseq','name']
+        col_names =['locus_tag','genomic_accession','start_g','end_g','strand','attributes_x','product_accession','nonredundant_refseq','name','protein_sequence','dna_sequence']
         cols = ', '.join(col_names)
         my_query = "SELECT {} FROM \"Genes\"".format(cols)
         results = db.execute(my_query).fetchall()
@@ -479,3 +480,27 @@ def get_genes_by_cluster(db: Session, genes):
         frames.append(df_from_records_g.merge(df_from_records_all_genes))
 
     return pd.concat(frames) # return a single dataframe with all of the genes info in the same cluster
+
+
+def prepare_fasta_file(df, prot):
+    final_txt = ""
+    for index, row in df.iterrows():
+        locus_tag, start_g, end_g, name, g_accession  = row['locus_tag'], row['start_g'], row['end_g'], row['name'], row['genomic_accession']
+        seq = row['protein_sequence'] if prot else row['dna_sequence']
+        every = 80
+        seq = '\n'.join(seq[i:i+every] for i in range(0, len(seq), every))
+        type = 'prot' if prot else 'dna'
+        newentry = ">lcl|{}_{} [locus_tag = {}] [location = {}..{}] [name = {}] \n {} \n".format(g_accession,type,locus_tag,start_g,end_g,name,seq)
+        final_txt += newentry
+
+    output = io.StringIO()
+    output.write(final_txt)
+
+    #Returns a csv prepared to be downloaded in the FrontEnd
+    response = StreamingResponse(iter([output.getvalue()]),
+                                 media_type="text/plain"
+                                 )
+
+    response.headers["Content-Disposition"] = "attachment; filename=export.txt"
+
+    return response

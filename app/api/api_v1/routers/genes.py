@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from app.db.session import get_db
 from app.db.crud import (
-    get_genes, get_genes_download, get_genes_by_defense, prepare_file, prepare_zip, get_genes_by_cluster
+    get_genes, get_genes_download, get_genes_by_defense, prepare_csv_file, prepare_zip, get_genes_by_cluster, prepare_fasta_file
 )
 from app.db.schemas import GeneBase
 
@@ -39,7 +39,7 @@ async def download_genes(
     """Get all genes"""
     genes = get_genes_download(db, selectedC, selectedAS)
 
-    return prepare_file(genes)
+    return prepare_csv_file(genes)
 
 @r.get(
     "/genes_by_defense",
@@ -56,7 +56,7 @@ async def genes_by_defense(
     genes_by_defense = get_genes_by_defense(db, selectedC, selectedAS)
     # This is necessary for react-admin to work
     # response.headers["Content-Range"] = f"0-9/{len(users)}"
-    return prepare_file(genes_by_defense)
+    return prepare_csv_file(genes_by_defense)
 
 @r.get(
     "/genes_by_cluster",
@@ -67,9 +67,16 @@ async def genes_by_cluster(
         response: Response,
         db=Depends(get_db),
         genes: List[str] = Query(None), # the index of the selected cluster
+        csv: bool = Query(None),
+        prot: bool = Query(None)
 ):
     """Get all genes"""
     genes_by_cluster = get_genes_by_cluster(db, genes)
     # This is necessary for react-admin to work
     # response.headers["Content-Range"] = f"0-9/{len(users)}"
-    return prepare_file(genes_by_cluster)
+    if csv:
+        return prepare_csv_file(genes_by_cluster)
+    else: # selected a fasta file
+        return prepare_fasta_file(genes_by_cluster, prot)
+
+
