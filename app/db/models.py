@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, Text, Numeric, VARCHAR
+from sqlalchemy import Boolean, Column, Integer, String, Text, Numeric, VARCHAR, FLOAT
 
 from .session import Base
 
@@ -18,6 +18,7 @@ class Genes(Base):
     __tablename__ = "Genes"
 
     locus_tag = Column("locus_tag", Text, primary_key=True, index=True, nullable=False)
+    assembly_x =  Column("assembly_x", Text)
     attributes_x = Column("attributes_x", Text)
     chromosome_y = Column("chromosome_y", Text)
     genomic_accession_y = Column("genomic_accession_y", Text)
