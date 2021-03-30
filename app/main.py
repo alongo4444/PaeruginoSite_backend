@@ -5,6 +5,8 @@ import uvicorn
 from fastapi.staticfiles import StaticFiles
 from app.api.api_v1.routers.genes import genes_router
 from app.api.api_v1.routers.strains import strains_router
+from app.api.api_v1.routers.defense_systems import defense_systems_router
+from app.api.api_v1.routers.statistics import statistics_router
 
 from app.core import config
 from app.db.session import SessionLocal
@@ -55,6 +57,8 @@ app.include_router(auth_router, prefix="/api", tags=["auth"])
 app.include_router(genes_router, prefix="/api/v1/genes", tags=["genes"])
 app.include_router(strains_router, prefix="/api/v1/strains", tags=["strains"])
 app.include_router(cluster_router, prefix="/api/v1/cluster", tags=["cluster"])
+app.include_router(statistics_router, prefix="/api/v1/statistics", tags=["statistics"])
+app.include_router(defense_systems_router, prefix="/api/v1/defense", tags=["defense_systems"])
 
 
 
