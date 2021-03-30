@@ -357,7 +357,7 @@ def get_genes_by_defense(db: Session, selectedC, selectedAS):
 
 # returns a csv file of a dataframe to the frontend
 def prepare_csv_file(dafaframe):
-    dafaframe = dafaframe.drop(columns=['protein_sequence','dna_sequence'])
+
     stream = io.StringIO()
 
     dafaframe.to_csv(stream, index=False)
@@ -374,17 +374,26 @@ def prepare_csv_file(dafaframe):
 # returns a zip file of a several CSV of dataframes to the frontend
 def prepare_zip(dafaframes):
 
+    files = []
+
+    csv_buffer = io.StringIO()
+    for n, d in enumerate(dafaframes):
+        output = io.StringIO()
+        csvdata = [1, 2, 'a', 'He said "what do you mean?"', "Whoa!\nNewlines!"]
+        writer = csv.writer(output, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerow(csvdata)
+
+        files.append(output)
+
     outfile = io.BytesIO()
     with zipfile.ZipFile(outfile, 'w') as zf:
-        for n, f in enumerate(dafaframes):
-            string_buffer = io.StringIO()
-            string_buffer.write(f.to_csv(index=False))
-            zf.writestr("{}.csv".format(n), string_buffer.getvalue())
+        for n, f in enumerate(files):
+            zf.writestr("{}.csv".format(n), f.read())
 
         outfile.seek(0)
         # Returns a csv prepared to be downloaded in the FrontEnd
-        response = StreamingResponse(outfile,
-                                     media_type="application/x-zip-compressed"
+        response = StreamingResponse(iter([outfile.getvalue()]),
+                                     media_type="application/zip"
                                      )
 
         response.headers["Content-Disposition"] = "attachment; filename=test.zip"
@@ -394,12 +403,29 @@ def prepare_zip(dafaframes):
     # zipped_file = zipFiles(dafaframes)
     return response
 
+def newcsv(data, csvheader, fieldnames):
+    """
+    Create a new csv file that represents generated data.
+    """
+    csvrow = []
+    new_csvfile = io.StringIO()
+    wr = csv.writer(new_csvfile, quoting=csv.QUOTE_ALL)
+    wr.writerow(csvheader)
+    wr = csv.DictWriter(new_csvfile, fieldnames = fieldnames)
+
+    for key in data.keys():
+        wr.writerow(data[key])
+
+    return new_csvfile
+
 def zipFiles(dafaframes):
     outfile = "export.zip"
     with zipfile.ZipFile(outfile, 'w') as zf:
         for n, f in enumerate(dafaframes):
             zf.writestr("{}.csv".format(str(n)), pd.DataFrame(f).to_csv())
         return zf
+
+
 
 def get_defense_systems_of_genes(db: Session, strain_name):
     """
@@ -482,6 +508,7 @@ def get_genes_by_cluster(db: Session, genes):
         frames.append(df_from_records_g.merge(df_from_records_all_genes))
 
     return pd.concat(frames).drop_duplicates() # return a single dataframe with all of the genes info in the same cluster
+
 
 
 def prepare_fasta_file(df, prot):

@@ -51,7 +51,7 @@ class Strains(Base):
 class GenesDefenseSystems(Base):
     __tablename__ = "Genes_Defence_Systems"
     strain = Column("strain", Text, primary_key=True, index=True, nullable=False)
-    locus_tag = Column("locus_tag", Text, primary_key=True, index=True, nullable=False)
+    locus_tag = Column("full_locus", Text, primary_key=True, index=True, nullable=False)
     defense_system = Column("defense_system", Text)
     anti_crispr = Column("anti_crispr", Text)
 
