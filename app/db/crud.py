@@ -543,5 +543,13 @@ def get_defense_systems_names(db: Session, flag=False):
         lst = df['defense_systems']
         s = set(lst)
         return s
-    df = df.to_dict('records')
-    return df
+    result_str = []
+    id = 0
+    list_of_def = list(df['defense_systems'])
+    for r in list_of_def:
+        d = {}
+        d['name'] = r
+        d['key'] = id
+        id += 1
+        result_str.append(d)
+    return result_str
