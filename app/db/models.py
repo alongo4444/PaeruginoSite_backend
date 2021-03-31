@@ -45,6 +45,8 @@ class Strains(Base):
     size = Column("sizemb", Numeric)
     gc = Column("gc", Numeric)
     scaffolds = Column("scaffolds", Integer)
+    mlst_sequence_type = Column("mlst_sequence_type", Text)
+    isolation_type = Column("isolation_type", Text)
 
 
 # class that is used for the 4.4 requirement
