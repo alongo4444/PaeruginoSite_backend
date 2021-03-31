@@ -38,9 +38,9 @@ class Genes(Base):
 class Strains(Base):
     __tablename__ = "Strains"
     index = Column("index", Text, primary_key=True, index=True, nullable=False)
-    assembly = Column("assembly", Text)
+    assembly_genbank = Column("assembly_genbank", Text) #assembly
     strain = Column("strain", Text)
-    assembly_accession_x = Column("assembly_accession_x", Text)
+    assembly_refseq = Column("assembly_refseq", Text)
     level = Column("level", Text)
     size = Column("sizemb", Numeric)
     gc = Column("gc", Numeric)
