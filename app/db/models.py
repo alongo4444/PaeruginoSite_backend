@@ -52,7 +52,37 @@ class Strains(Base):
 class GenesDefenseSystems(Base):
     __tablename__ = "Genes_Defence_Systems"
     strain = Column("strain", Text, primary_key=True, index=True, nullable=False)
-    locus_tag = Column("locus_tag", Text, primary_key=True, index=True, nullable=False)
+    locus_tag = Column("full_locus", Text, primary_key=True, index=True, nullable=False)
     defense_system = Column("defense_system", Text)
     anti_crispr = Column("anti_crispr", Text)
+
+
+# class that is used for the 4.5 requirement
+class StrainsDefenseSystems(Base):
+    __tablename__ = "Strains_Defence_Systems"
+    index = Column("index", Integer, primary_key=True, index=True, nullable=False)
+    strain = Column("strain", Text)
+    abi = Column("abi", Integer)
+    brex = Column("brex", Integer)
+    crispr = Column("crispr", Integer)
+    disarm = Column("disarm", Integer)
+    dnd = Column("dnd", Integer)
+    druantia = Column("druantia", Integer)
+    gabija = Column("gabija", Integer)
+    hachiman = Column("hachiman", Integer)
+    kiwa = Column("kiwa", Integer)
+    lamassu = Column("lamassu", Integer)
+    pagos = Column("pagos", Integer)
+    rm = Column("rm", Integer)
+    septu = Column("septu", Integer)
+    shedu = Column("shedu", Integer)
+    thoeris = Column("thoeris", Integer)
+    wadjet = Column("wadjet", Integer)
+    zorya = Column("zorya", Integer)
+
+
+# class that is used for the 4.5 requirement
+class DefenseSystems(Base):
+    __tablename__ = "DefenseSystems"
+    Name = Column("defense_system", Text, primary_key=True, index=True, nullable=False)
 
