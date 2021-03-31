@@ -233,7 +233,12 @@ async def get_gene_strain_id(
         d = dict(row.items())
         list_genes.append(d['locus_tag'])
     # list_genes = [d.get('locus_tag') for d in gene]
-    return list_genes
+    df = pd.DataFrame(list_genes, columns=['name'])
+    result = df.to_json(orient="records")
+    parsed = json.loads(result)
+    json.dumps(parsed, indent=4)
+    return parsed
+    #return list_genes
 
 
 @r.get(
