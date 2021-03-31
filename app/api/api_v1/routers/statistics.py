@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Request, Depends, Response, encoders, Query
+from fastapi import APIRouter, Depends, Response, Query
 from app.db.session import get_db
 import pandas as pd
 from app.db.crud import (
-    get_strains, get_strains_names, get_defense_systems_of_genes, get_defense_systems_names,
+    get_defense_systems_names,
     get_defense_systems_of_two_strains
 )
 from typing import List, Optional
