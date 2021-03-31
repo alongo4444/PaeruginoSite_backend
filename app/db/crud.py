@@ -509,10 +509,16 @@ def get_genes_by_cluster(db: Session, genes):
         results = db.execute(my_query).fetchall()
         df_from_records_all_genes = pd.DataFrame(results, columns=col_names)
         frames.append(df_from_records_g.merge(df_from_records_all_genes))
+        # df_from_records_all_genes['locus_tag'] =  df_from_records_all_genes['attributes_x']
+        # df_from_records_all_genes['locus_tag'] = df_from_records_all_genes['locus_tag'].apply(lambda x: remove_old_locus_string(x))
+        # frames.append(df_from_records_g.merge(df_from_records_all_genes))
 
     return pd.concat(frames).drop_duplicates() # return a single dataframe with all of the genes info in the same cluster
 
-
+def remove_old_locus_string(s):
+    if s:
+        return s.replace('old_locus_tag=','')
+    return s
 
 def prepare_fasta_file(df, prot):
     final_txt = ""
