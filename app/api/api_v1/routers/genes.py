@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query, Request, Depends, Response, encoders
 from typing import List, Optional
-
+import pandas as pd
 
 from app.db.session import get_db
 from app.db.crud import (
@@ -75,7 +75,11 @@ async def genes_by_cluster(
     # This is necessary for react-admin to work
     # response.headers["Content-Range"] = f"0-9/{len(users)}"
     if csv:
+        genes_by_cluster = genes_by_cluster.drop(columns=['protein_sequence', 'dna_sequence'])
         return prepare_csv_file(genes_by_cluster)
+        # d = {'col1': [1, 2], 'col2': [3, 4]}
+        # df = pd.DataFrame(data=d)
+        # return prepare_zip([genes_by_cluster,df])
     else: # selected a fasta file
         return prepare_fasta_file(genes_by_cluster, prot)
 
