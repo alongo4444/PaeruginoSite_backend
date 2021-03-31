@@ -10,6 +10,9 @@ import typing as t
 import json
 import io
 import re
+from sqlalchemy.sql import select
+
+
 
 from starlette.responses import StreamingResponse
 
@@ -506,3 +509,47 @@ def prepare_fasta_file(df, prot):
     response.headers["Content-Disposition"] = "attachment; filename=export.txt"
 
     return response
+
+
+def get_defense_systems_of_two_strains(db: Session, first_strain_name, second_strain_name):
+    """
+    the function returns df that contains two vectors of each defense system that represents is they are in the strains
+    :param db: the connection to the database
+    :param first_strain_name: the first defense system
+    :param second_strain_name: the second defense system
+    :return: dataframe that contains the relevant information
+    """
+    cols = ['index', first_strain_name.lower(), second_strain_name.lower()]
+    query = db.query(models.StrainsDefenseSystems)\
+        .with_entities(getattr(models.StrainsDefenseSystems, cols[0]),
+                       getattr(models.StrainsDefenseSystems, cols[1]),
+                       getattr(models.StrainsDefenseSystems, cols[2]))                       \
+        .all()
+    df = pd.DataFrame.from_records(query, columns=['index', first_strain_name.lower(), second_strain_name.lower()])
+    return df
+
+
+def get_defense_systems_names(db: Session, flag=False):
+    """
+    the function returns all of the defense systems names
+    :param db: the connection to the database
+    :param flag: the flag decides which value to return (true = set, false = df in records format)
+    :return: dataframe that contains the relevant information or set of the names
+    """
+    query = db.query(models.GenesDefenseSystems) \
+        .with_entities(models.DefenseSystems.Name).all()
+    df = pd.DataFrame.from_records(query, columns=['defense_systems'])
+    if flag:
+        lst = df['defense_systems']
+        s = set(lst)
+        return s
+    result_str = []
+    id = 0
+    list_of_def = list(df['defense_systems'])
+    for r in list_of_def:
+        d = {}
+        d['name'] = r
+        d['key'] = id
+        id += 1
+        result_str.append(d)
+    return result_str
