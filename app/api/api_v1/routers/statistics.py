@@ -3,7 +3,7 @@ from app.db.session import get_db
 import pandas as pd
 from app.db.crud import (
     get_defense_systems_names,
-    get_defense_systems_of_two_strains
+    get_defense_systems_of_two_strains, get_strain_column_data, get_defense_systems_of_one_strain
 )
 from typing import List, Optional
 from scipy.stats import hypergeom
@@ -40,3 +40,17 @@ async def get_correlation_between_defense_systems(response: Response,
     df = pd.DataFrame.from_dict(values)
     df = df.to_dict('records')
     return df
+
+@r.get(
+    "/correlationBetweenDefenseSystemAndAttribute",
+    response_model_exclude_none=True,
+    status_code=200,
+)
+async def get_correlation_between_defense_systems(response: Response,
+                                                  system: str, category: str,
+                                                  db=Depends(get_db)):
+    attributes = get_strain_column_data(db, system, category)
+    defense_system = get_defense_systems_of_one_strain(db, system)
+    combined = pd.merge(attributes, defense_system, on="index")
+    print(combined)
+    return combined

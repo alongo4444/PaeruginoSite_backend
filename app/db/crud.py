@@ -553,3 +553,38 @@ def get_defense_systems_names(db: Session, flag=False):
         id += 1
         result_str.append(d)
     return result_str
+
+
+# for the requirement of 4.6
+def get_defense_systems_of_one_strain(db: Session, strain_name):
+    """
+    the function returns df that contains one vector of each defense system that represents is they are in the strain
+    :param db: the connection to the database
+    :param strain_name: the first defense system
+    :return: dataframe that contains the relevant information
+    """
+    cols = ['index', strain_name.lower()]
+    query = db.query(models.StrainsDefenseSystems)\
+        .with_entities(getattr(models.StrainsDefenseSystems, cols[0]),
+                       getattr(models.StrainsDefenseSystems, cols[1]),)                       \
+        .all()
+    df = pd.DataFrame.from_records(query, columns=['index', strain_name.lower()])
+    return df
+
+
+# for the requirement of 4.6
+def get_strain_column_data(db: Session, strain_name, category_name):
+    """
+    the function returns df that contains one vector of each defense system that represents is they are in the strain
+    :param db: the connection to the database
+    :param strain_name: the first defense system
+    :param category_name: the name of the column we want to extract from the DB
+    :return: dataframe that contains the relevant information
+    """
+    cols = ['index', strain_name.lower(), category_name.lower()]
+    query = db.query(models.Strains)\
+        .with_entities(getattr(models.Strains, cols[0]),
+                       getattr(models.Strains, cols[1]),
+                       getattr(models.Strains, cols[2]))
+    df = pd.DataFrame.from_records(query, columns=['index', strain_name.lower()])
+    return df
