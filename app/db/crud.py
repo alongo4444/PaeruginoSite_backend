@@ -119,17 +119,15 @@ def get_genes_download(db: Session, selectedC, selectedAS):
 def get_genes(db: Session):
     # Defining the SQLAlchemy-query
     genes_query = db.query(models.Genes).with_entities(models.Genes.locus_tag,
-                                                       models.Genes.genomic_accession_y,
-                                                       models.Genes.start_y,
-                                                       models.Genes.end_y,
-                                                       models.Genes.strand_y,
-                                                       models.Genes.product_accession_y,
-                                                       models.Genes.name_y,
-                                                       models.Genes.symbol_y,
-                                                       models.Genes.geneID_y,
-                                                       models.Genes.product_length_y,
+                                                       models.Genes.genomic_accession,
+                                                       models.Genes.start,
+                                                       models.Genes.end,
+                                                       models.Genes.strand,
+                                                       models.Genes.genomic_accession,
+                                                       models.Genes.name,
+                                                       models.Genes.symbol,
                                                        models.Genes.dna_sequence,
-                                                       models.Genes.protein_sequence, )
+                                                       models.Genes.protein_sequence)
 
     # Getting all the entries via SQLAlchemy
     all_genes = genes_query.all()
