@@ -176,15 +176,15 @@ def get_strains_index(db: Session):
 def get_strains(db: Session):
     result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain, models.Strains.level,
                                                     models.Strains.gc, models.Strains.size,
-                                                    models.Strains.scaffolds, models.Strains.assembly_accession_x,
-                                                    models.Strains.assembly).all()
+                                                    models.Strains.scaffolds, models.Strains.assembly_refseq,
+                                                    models.Strains.assembly_genbank).all()
     df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain', 'level', 'gc', 'size', 'scaffolds',
-                                                                 'assembly_accession_x', 'assembly'])
+                                                                 'assembly_refseq', 'assembly'])
     return df_from_records
 
 def get_strains_names(db: Session):
     # Defining the SQLAlchemy-query
-    strains_query = db.query(models.Genes).with_entities(models.Strains.assembly_accession_x,
+    strains_query = db.query(models.Genes).with_entities(models.Strains.assembly_refseq,
                                                        models.Strains.strain, )
 
     # Getting all the entries via SQLAlchemy
@@ -193,9 +193,9 @@ def get_strains_names(db: Session):
     # We provide also the (alternate) column names and set the index here,
     # renaming the column `id` to `currency__id`
     df_from_records = pd.DataFrame.from_records(all_strains
-                                                , index='assembly_accession_x'
-                                                , columns=['assembly_accession_x',
-                                                           'strain',
+                                                , index='assembly_refseq'
+                                                , columns=['assembly_refseq',
+                                                           'strain'
                                                            ])
     df_from_records = df_from_records.rename(columns={"strain": "name"})
     print(df_from_records.head(5))
