@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request, Depends, Response, encoders, Query
 from app.db.session import get_db
+import pandas as pd
 from app.db.crud import (
     get_strains, get_strains_names, get_defense_systems_of_genes, get_defense_systems_names,
     get_defense_systems_of_two_strains
@@ -33,8 +34,9 @@ async def get_correlation_between_defense_systems(response: Response,
     K = len(K_l)
     n = len(n_l)
     k = len(k_l)
-    # print(f" N is {N} ,K is {K}, n is {n}, k is {k}")
     pval = hypergeom.sf(k - 1, N, K, n)
-    # print(pval)
-    values = {"N": N, "K": K, "n": n, "k": k, "pvalue": pval}
-    return values
+    exp_number = "{:e}".format(pval)
+    values = {"N": [N], "K": [K], "n": [n], "k": [k], "pvalue": [exp_number]}
+    df = pd.DataFrame.from_dict(values)
+    df = df.to_dict('records')
+    return df
