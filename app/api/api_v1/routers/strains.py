@@ -42,7 +42,7 @@ def get_offset(x):
        this function gets the number of strains the user want to show and return compatible offset (spacing) between layers
        """
     if(x ==0):
-        return str(0.01)
+        return str(0.03)
     return str(-0.0001*x+0.15)
 
 def get_resolution(x):
