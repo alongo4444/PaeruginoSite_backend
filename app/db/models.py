@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, Text, Numeric, VARCHAR
+from sqlalchemy import Boolean, Column, Integer, String, Text, Numeric, VARCHAR, FLOAT
 
 from .session import Base
 
@@ -16,20 +16,20 @@ class User(Base):
 
 class Genes(Base):
     __tablename__ = "Genes"
-
+    #SELECT index, assembly, genomic_accession, start_g, end_g, strand, symbol, locus_tag,
+    # attributes_x, product_accession, nonredundant_refseq, name, protein_sequence, dna_sequence
+    #
     locus_tag = Column("locus_tag", Text, primary_key=True, index=True, nullable=False)
+    assembly = Column("assembly", Text)
     attributes_x = Column("attributes_x", Text)
-    chromosome_y = Column("chromosome_y", Text)
-    genomic_accession_y = Column("genomic_accession_y", Text)
-    start_y = Column("start_y", Integer)
-    end_y = Column("end_y", Integer)
-    strand_y = Column("strand_y", String)
-    product_accession_y = Column("product_accession_y", Text)
+    genomic_accession = Column("genomic_accession", Text)
+    start = Column("start_g", Integer)
+    end = Column("end_g", Integer)
+    strand = Column("strand", String)
+    product_accession = Column("product_accession", Text)
     # non-redundant_refseq_y = Column("non-redundant_refseq_y", Text)
-    name_y = Column("name_y", Text)
-    symbol_y = Column("symbol_y", Text)
-    geneID_y = Column("geneID_y", Integer)
-    product_length_y = Column("product_length_y", Numeric)
+    name = Column("name", Text)
+    symbol = Column("symbol", Text)
     dna_sequence = Column("dna_sequence", Text)
     protein_sequence = Column("protein_sequence", Text)
 
@@ -37,20 +37,52 @@ class Genes(Base):
 class Strains(Base):
     __tablename__ = "Strains"
     index = Column("index", Text, primary_key=True, index=True, nullable=False)
-    assembly = Column("assembly", Text)
+    assembly_genbank = Column("assembly_genbank", Text) #assembly
     strain = Column("strain", Text)
-    assembly_accession_x = Column("assembly_accession_x", Text)
+    assembly_refseq = Column("assembly_refseq", Text)
     level = Column("level", Text)
     size = Column("sizemb", Numeric)
     gc = Column("gc", Numeric)
     scaffolds = Column("scaffolds", Integer)
+    mlst_sequence_type = Column("mlst_sequence_type", Text)
+    isolation_type = Column("isolation_type", Text)
 
 
 # class that is used for the 4.4 requirement
 class GenesDefenseSystems(Base):
     __tablename__ = "Genes_Defence_Systems"
     strain = Column("strain", Text, primary_key=True, index=True, nullable=False)
-    locus_tag = Column("locus_tag", Text, primary_key=True, index=True, nullable=False)
+    locus_tag = Column("full_locus", Text, primary_key=True, index=True, nullable=False)
     defense_system = Column("defense_system", Text)
     anti_crispr = Column("anti_crispr", Text)
+
+
+# class that is used for the 4.5 requirement
+class StrainsDefenseSystems(Base):
+    __tablename__ = "Strains_Defence_Systems"
+    index = Column("index", Integer, primary_key=True, index=True, nullable=False)
+    strain = Column("strain", Text)
+    abi = Column("abi", Integer)
+    brex = Column("brex", Integer)
+    crispr = Column("crispr", Integer)
+    disarm = Column("disarm", Integer)
+    dnd = Column("dnd", Integer)
+    druantia = Column("druantia", Integer)
+    gabija = Column("gabija", Integer)
+    hachiman = Column("hachiman", Integer)
+    kiwa = Column("kiwa", Integer)
+    lamassu = Column("lamassu", Integer)
+    pagos = Column("pagos", Integer)
+    rm = Column("rm", Integer)
+    septu = Column("septu", Integer)
+    shedu = Column("shedu", Integer)
+    thoeris = Column("thoeris", Integer)
+    wadjet = Column("wadjet", Integer)
+    zorya = Column("zorya", Integer)
+
+
+# class that is used for the 4.5 requirement
+class DefenseSystems(Base):
+    __tablename__ = "DefenseSystems"
+    Name = Column("defense_system", Text, primary_key=True, index=True, nullable=False)
 
