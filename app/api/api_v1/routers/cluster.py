@@ -44,10 +44,14 @@ async def cluster_tree(
     cluster_ids = ""
     for l in list_strains:
         cluster_ids += str(l[0]) + '_'  # cluster id is used for the hash id used for later
+    str_list = ""
+    if len(subtree) > 0:
+        str_list = " ".join(str(x) for x in subtree)
+    cluster_ids = cluster_ids + str_list
     filenameHash = hashlib.md5(cluster_ids.encode())
     filename = filenameHash.hexdigest()
     my_file = Path(r'static/cluster/' + filename + ".png")
-    myPath = str(Path().resolve()).replace('\\','/')+'/static/cluster'
+    myPath = str(Path().resolve()).replace('\\', '/') + '/static/cluster'
     if not os.path.exists(my_file):
         command = 'C:/Program Files/R/R-4.0.4/bin/Rscript.exe'
         # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
@@ -91,10 +95,10 @@ async def cluster_tree(
             p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5) + geom_tiplab()
                     """
         query = query + """
-             dat1 <- read.csv('"""+myPath+"""/cluster.csv')
+             dat1 <- read.csv('""" + myPath + """/cluster.csv')
                 """
         layer = len(list_strains)
-        if (layer >= 1):
+        if layer >= 1:
             query = query + """p <- p + new_scale_fill() +
                                   geom_fruit(
                                     data=dat1,
@@ -102,21 +106,22 @@ async def cluster_tree(
                                     mapping=aes(y=index,x=count0, colour=c('red')),
                                     orientation="y",
                                     width=1,
-                                    pwidth=0.05,
+                                    pwidth= 0.08,
+                                    offset = """ + get_offset(len(subtreeSort)) + """,
                                     stat="identity",
                                     fill='red'
                                   ) + theme(
 
-                                    legend.text = element_text(size = "6"),
+                                    legend.text = element_text(size = """ + get_font_size(len(subtreeSort)) + """),
                                     legend.title = element_blank(),
                                     legend.margin=margin(c(0,200,0,0)),
-                                    legend.spacing = unit("0.02","cm"),
-                                    legend.spacing.x = unit("0.02","cm")
+                                    legend.spacing = unit(""" + get_spacing(len(subtreeSort)) + ""","cm"),
+                                    legend.spacing.x = unit(""" + get_spacing(len(subtreeSort)) + ""","cm")
                                   )+
                                     scale_colour_manual(values = c('red'), labels = c('""" + \
                     list_strain_gene[0].split('-')[1] + """'))
                                   """
-        if (layer >= 2):
+        if layer >= 2:
             query = query + """p <- p + new_scale_colour() +
                                   geom_fruit(
                                     data=dat1,
@@ -124,21 +129,22 @@ async def cluster_tree(
                                     mapping=aes(y=index,x=count1, colour=c("blue")),
                                     orientation="y",
                                     width=1,
-                                    pwidth=0.05,
+                                    pwidth=0.08,
+                                    offset = """ + get_offset(len(subtreeSort)) + """,
                                     stat="identity",
                                     fill="blue"
                                   ) + theme(
 
-                                    legend.text = element_text(size = "6"),
+                                    legend.text = element_text(size = """ + get_font_size(len(subtreeSort)) + """),
                                     legend.title = element_blank(),
                                     legend.margin=margin(c(0,200,0,0)),
-                                    legend.spacing = unit("0.2","cm"),
-                                    legend.spacing.x = unit("0.2","cm")
+                                    legend.spacing = unit(""" + get_spacing(len(subtreeSort)) + ""","cm"),
+                                    legend.spacing.x = unit(""" + get_spacing(len(subtreeSort)) + ""","cm")
                                   )+
                                     scale_colour_manual(values = c("blue"), labels = c('""" + \
                     list_strain_gene[1].split('-')[1] + """'))
                                   """
-        if (layer >= 3):
+        if layer >= 3:
             query = query + """p <- p + new_scale_colour() +
                                   geom_fruit(
                                     data=dat1,
@@ -147,6 +153,7 @@ async def cluster_tree(
                                     orientation="y",
                                     width=1,
                                     pwidth=0.05,
+                                    offset = """ + get_offset(len(subtreeSort)) + """,
                                     stat="identity",
                                     fill='green'
                                   ) + theme(
@@ -154,16 +161,16 @@ async def cluster_tree(
                                     legend.text = element_text(size = """ + get_font_size(len(subtreeSort)) + """),
                                     legend.title = element_blank(),
                                     legend.margin=margin(c(0,200,0,0)),
-                                    legend.spacing = unit("0.2","cm"),
-                                    legend.spacing.x = unit("0.2","cm")
+                                    legend.spacing = unit(""" + get_spacing(len(subtreeSort)) + ""","cm"),
+                                    legend.spacing.x = unit(""" + get_spacing(len(subtreeSort)) + ""","cm")
                                   )+
                                     scale_colour_manual(values = c('green'), labels = c('""" + \
                     list_strain_gene[2].split('-')[1] + """'))
                                   """
         resolution = get_resolution(len(subtreeSort))
-        resolution = 300
+        # resolution = 300
         query = query + """
-            png("""+'"'+myPath+'/'+ filename + """.png", units="cm", width=""" + str(
+            png(""" + '"' + myPath + '/' + filename + """.png", units="cm", width=""" + str(
             resolution) + """, height=""" + str(resolution) + """, res=100)
             plot(p)
             dev.off(0)"""
@@ -238,7 +245,7 @@ async def get_gene_strain_id(
     parsed = json.loads(result)
     json.dumps(parsed, indent=4)
     return parsed
-    #return list_genes
+    # return list_genes
 
 
 @r.get(
