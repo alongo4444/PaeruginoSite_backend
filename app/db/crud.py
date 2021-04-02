@@ -523,6 +523,7 @@ def prepare_fasta_file(df, prot):
     return response
 
 
+# for requirement 4.5
 def get_defense_systems_of_two_strains(db: Session, first_strain_name, second_strain_name):
     """
     the function returns df that contains two vectors of each defense system that represents is they are in the strains
@@ -541,6 +542,7 @@ def get_defense_systems_of_two_strains(db: Session, first_strain_name, second_st
     return df
 
 
+# for requirement 4.5 and 4.6
 def get_defense_systems_names(db: Session, flag=False):
     """
     the function returns all of the defense systems names
@@ -565,3 +567,59 @@ def get_defense_systems_names(db: Session, flag=False):
         id += 1
         result_str.append(d)
     return result_str
+
+
+# for the requirement of 4.6
+def get_all_strains_of_defense_system(db: Session, defense_system):
+    """
+    the function returns df that contains one vector of each defense system that represents is they are in the strain
+    :param db: the connection to the database
+    :param defense_system: the first defense system
+    :return: dataframe that contains the relevant information
+    """
+    cols = ['index', defense_system.lower()]
+    query = db.query(models.StrainsDefenseSystems)\
+        .with_entities(getattr(models.StrainsDefenseSystems, cols[0]),
+                       getattr(models.StrainsDefenseSystems, cols[1]),)                       \
+        .all()
+    df = pd.DataFrame.from_records(query, columns=['index', defense_system.lower()])
+    if df.empty:
+        return "No Results"
+    return df
+
+
+# for the requirement of 4.6
+def get_strain_column_data(db: Session, category_name):
+    """
+    the function returns df that contains one vector of each defense system that represents is they are in the strain
+    :param db: the connection to the database
+    :param category_name: the name of the column we want to extract from the DB
+    :return: dataframe that contains the relevant information
+    """
+    cols = ['index', category_name.lower()]
+    query = db.query(models.Strains)\
+        .with_entities(getattr(models.Strains, cols[0]),
+                       getattr(models.Strains, cols[1]),).all()
+    df = pd.DataFrame.from_records(query, columns=['index', category_name.lower()])
+    if df.empty:
+        return "No Results"
+    return df
+
+
+# for requirement 4.6
+def dict_of_clusters_related_to_gene(db: Session, strain, gene):
+    """
+    the function returns df that contains the cluster, the gene and the dictionary of all the other cluster
+    :param db: the connection to the database
+    :param strain: the name of the strain (it's the column name in clusters table)
+    :param gene: the name of the gene we are looking for
+    :return: dataframe that contains the relevant information
+    """
+    search = "%{}%".format(gene)
+    query = db.query(models.Clusters)\
+        .with_entities(models.Clusters.index, getattr(models.Clusters, strain.lower()),
+                       models.Clusters.combined_index).filter(getattr(models.Clusters, strain.lower()).like(search)).all()
+    df = pd.DataFrame.from_records(query, columns=['index', strain.lower(), 'combined_index'])
+    if df.empty:
+        return "No Results"
+    return df
