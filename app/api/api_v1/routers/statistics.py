@@ -91,7 +91,7 @@ async def get_correlation_between_defense_systems_and_attribute(response: Respon
 async def get_correlation_between_defense_systems_and_iso_type(response: Response,
                                                   system: str, isoType: str,
                                                   db=Depends(get_db)):
-    correct_params = ['environmental/other', 'clinical']
+    correct_params = ['Environmental/other', 'Clinical']
     if isoType not in correct_params:
         return Response(content="Wrong isotype", status_code=400)
     names_of_def_systems = get_defense_systems_names(db, True)
@@ -165,7 +165,7 @@ async def get_correlation_between_defense_systems_and_cluster(response: Response
 async def get_correlation_between_cluster_and_isotype(response: Response,
                                                   isoType: str, strain: str, gene: str,
                                                   db=Depends(get_db)):
-    correct_params = ['environmental/other', 'clinical']
+    correct_params = ['Environmental/other', 'Clinical']
     if isoType not in correct_params:
         return Response(content="Wrong isotype", status_code=400)
     valid_strain = ['pao1', 'pa14']

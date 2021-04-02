@@ -33,7 +33,7 @@ async def isoTypes(
     """Get all genes"""
     # This is necessary for react-admin to work
     # response.headers["Content-Range"] = f"0-9/{len(users)}"
-    return [{'name': 'Clinical', 'key': 0},{'name': 'Environmental', 'key':1}]
+    return [{'name': 'Clinical', 'key': 0},{'name': 'Environmental/other', 'key':1}]
 
 @r.get(
     "/isolation_tree",
