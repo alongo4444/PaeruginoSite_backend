@@ -4,7 +4,7 @@ import pandas as pd
 from fastapi.responses import FileResponse, HTMLResponse
 from app.db.session import get_db
 from app.db.crud import (
-    get_strains, get_strains_names, get_defense_systems_of_genes, get_strains_index
+    get_strain_isolation_mlst, get_strains_names, get_defense_systems_of_genes, get_strains_index
 )
 import numpy as np
 from pathlib import Path
@@ -134,6 +134,7 @@ async def phylogenetic_tree(
     if len(subtree) > 0:
         subtreeSort = sortObj.radixSort(subtree)
     filenameStr = "".join(systems) + "".join(str(x) for x in subtreeSort)
+    filenameStr = filenameStr + str(MLST)
     filenameHash = hashlib.md5(filenameStr.encode())
     filename = filenameHash.hexdigest()
 
@@ -145,10 +146,10 @@ async def phylogenetic_tree(
         arg = '--vanilla'
 
         # data preprocessing for the R query
-        strains = get_strains(db)
+        strains = get_strain_isolation_mlst(db)
         strains['Defense_sys'] = np.random.choice(def_sys, strains.shape[
             0])  # todo remove when defense systems are uploaded to db
-        strains = strains[['index', 'strain', 'Defense_sys']]
+        # strains = strains[['index', 'strain', 'Defense_sys']]
         if len(subtree) > 0:
             strains = strains.loc[strains['index'].isin(subtree)]
             systems = strains.loc[strains['Defense_sys'].isin(systems)]['Defense_sys'].unique().tolist() if len(
@@ -165,6 +166,8 @@ async def phylogenetic_tree(
                     library(treeio)
                     library(ggnewscale)
                     library(ape)
+                    library(dplyr)
+
                     trfile <- system.file("extdata","our_tree.tree", package="ggtreeExtra")
                     tree <- read.tree(trfile) """
         if len(subtree) > 0:
@@ -177,25 +180,25 @@ async def phylogenetic_tree(
              dat1 <- read.csv('""" + myPath + """/Defense_sys.csv')
                 """
         if MLST is True:
-            query = query +"""
+            query = query + """
             # For the clade group
                 dat4 <- dat1 %>% select(c("index", "MLST"))
                 dat4 <- aggregate(.~MLST, dat4, FUN=paste, collapse=",")
                 clades <- lapply(dat4$index, function(x){unlist(strsplit(x,split=","))})
                 names(clades) <- dat4$MLST
                 
-                tree <- groupOTU(tree, clades, "MLST")
+                tree <- groupOTU(tree, clades, "MLST_color")
                 MLST <- NULL
-                p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5, aes(color=MLST)) + geom_tiplab()
+                p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5, aes(color=MLST_color), show.legend=FALSE)
             """
         else:
             query = query + """
-                    p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5) + geom_tiplab()
+                    p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5)
                             """
         for sys in systems:
             color = colors[sys]
             if (layer == 0):
-                query = query + """p <- p + new_scale_fill() +
+                query = query + """p <- p + new_scale_colour()+
                                       geom_fruit(
                                         data=dat1,
                                         geom=geom_bar,
@@ -241,6 +244,7 @@ async def phylogenetic_tree(
 
         resolution = get_resolution(len(subtreeSort))
         query = query + """
+            p <- p + geom_tiplab(show.legend=FALSE)
             png(""" + '"' + myPath + '/' + filename + """.png", units="cm", width=""" + str(
             resolution) + """, height=""" + str(resolution) + """, res=100)
             plot(p)
@@ -298,5 +302,3 @@ async def get_genes_def_systems(strain_name, response: Response, db=Depends(get_
     if df == 'No Results':
         return Response(content="No Results", status_code=400)
     return df
-
-

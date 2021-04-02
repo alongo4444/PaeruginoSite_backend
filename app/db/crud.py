@@ -247,7 +247,7 @@ this get the strain id and the strain name and isolation type and mlst
 def get_strain_isolation_mlst(db: Session):
     result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain,
                                                     models.Strains.isolation_type,models.Strains.mlst_sequence_type).all()
-    df_from_records = pd.DataFrame.from_records(result, index='index', columns=['index', 'strain', 'isolation_type', 'mlst_sequence_type'])
+    df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain', 'isolation_type', 'MLST'])
     return df_from_records
 
 
@@ -691,3 +691,12 @@ def dict_of_clusters_related_to_gene(db: Session, strain, gene):
     if df.empty:
         return "No Results"
     return df
+
+'''
+this get the strain id and the strain name with the MLST metadata
+'''
+
+def get_strains_MLST(db: Session):
+    result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain,models.Strains.mlst_sequence_type).all()
+    df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain', 'MLST'])
+    return df_from_records
