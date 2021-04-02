@@ -6,10 +6,14 @@ from app.db.crud import (
     get_defense_systems_of_two_strains, get_all_strains_of_defense_system, get_strain_column_data,
     dict_of_clusters_related_to_gene,
 )
+import ast
 from typing import List
 from scipy.stats import hypergeom
 from scipy.stats import mannwhitneyu
+
+
 statistics_router = r = APIRouter()
+
 
 @r.get(
     "/correlationBetweenDefenseSystems",
@@ -85,11 +89,11 @@ async def get_correlation_between_defense_systems_and_attribute(response: Respon
     status_code=200,
 )
 async def get_correlation_between_defense_systems_and_iso_type(response: Response,
-                                                  system: str, category: str,
+                                                  system: str, isoType: str,
                                                   db=Depends(get_db)):
     correct_params = ['environmental/other', 'clinical']
-    if category not in correct_params:
-        return Response(content="Wrong category name", status_code=400)
+    if isoType not in correct_params:
+        return Response(content="Wrong isotype", status_code=400)
     names_of_def_systems = get_defense_systems_names(db, True)
     if system not in names_of_def_systems:
         return Response(content="Defense system doesn't exist", status_code=400)
@@ -101,7 +105,7 @@ async def get_correlation_between_defense_systems_and_iso_type(response: Respons
     # calculate the distribution
     N = len(list(combined['index']))
     K_l = combined.index[combined[system.lower()] == 1].tolist()
-    n_l = combined.index[combined['isolation_type'] == category.lower()].tolist()
+    n_l = combined.index[combined['isolation_type'] == isoType.lower()].tolist()
     k_l = list(set(K_l) & set(n_l))
     K = len(K_l)
     n = len(n_l)
@@ -122,6 +126,69 @@ async def get_correlation_between_defense_systems_and_iso_type(response: Respons
 async def get_correlation_between_defense_systems_and_cluster(response: Response,
                                                   system: str, strain: str, gene: str,
                                                   db=Depends(get_db)):
+    names_of_def_systems = get_defense_systems_names(db, True)
+    if system not in names_of_def_systems:
+        return Response(content="Defense system doesn't exist", status_code=400)
+    valid_strain = ['pao1', 'pa14']
+    if strain.lower() not in valid_strain:
+        return Response(content="Strain doesn't exist", status_code=400)
+    clusters = dict_of_clusters_related_to_gene(db, strain, gene)
+    defense_system = get_all_strains_of_defense_system(db, system)
+    if clusters is 'No Results' or defense_system is "No Results":
+        return Response(content="No Results", status_code=400)
     df = dict_of_clusters_related_to_gene(db, strain, gene)
-    print(df)
-    return
+    try:
+        strains_in_cluster = ast.literal_eval(df['combined_index'].values[0])
+    except Exception:
+        return Response(content="Error in Value", status_code=400)
+    strains_in_clusters = [int(k) for k in strains_in_cluster.keys()]
+    # calculate the distribution
+    N = len(list(defense_system['index']))
+    K_l = defense_system.index[defense_system[system.lower()] == 1].tolist()
+    k_l = list(set(K_l) & set(strains_in_clusters))
+    K = len(K_l)
+    n = len(strains_in_clusters)
+    k = len(k_l)
+    pval = hypergeom.sf(k - 1, N, K, n)
+    exp_number = "{:e}".format(pval)
+    values = {"N": [N], "K": [K], "n": [n], "k": [k], "pvalue": [exp_number]}
+    df = pd.DataFrame.from_dict(values)
+    df = df.to_dict('records')
+    return df
+
+
+@r.get(
+    "/correlationBetweenClusterAndIsolationType",
+    response_model_exclude_none=True,
+    status_code=200,
+)
+async def get_correlation_between_cluster_and_isotype(response: Response,
+                                                  isoType: str, strain: str, gene: str,
+                                                  db=Depends(get_db)):
+    correct_params = ['environmental/other', 'clinical']
+    if isoType not in correct_params:
+        return Response(content="Wrong isotype", status_code=400)
+    valid_strain = ['pao1', 'pa14']
+    if strain.lower() not in valid_strain:
+        return Response(content="Strain doesn't exist", status_code=400)
+    clusters = dict_of_clusters_related_to_gene(db, strain, gene)
+    attributes = get_strain_column_data(db, 'isolation_type')
+    if clusters is 'No Results' or attributes is "No Results":
+        return Response(content="No Results", status_code=400)
+    try:
+        strains_in_cluster = ast.literal_eval(clusters['combined_index'].values[0])
+    except Exception:
+        return Response(content="Error in Value", status_code=400)
+    # calculate the distribution
+    N = len(list(attributes['index']))
+    K_l = attributes.index[attributes['isolation_type'] == isoType.lower()].tolist()
+    k_l = list(set(K_l) & set(strains_in_cluster))
+    K = len(K_l)
+    n = len(strains_in_cluster)
+    k = len(k_l)
+    pval = hypergeom.sf(k - 1, N, K, n)
+    exp_number = "{:e}".format(pval)
+    values = {"N": [N], "K": [K], "n": [n], "k": [k], "pvalue": [exp_number]}
+    df = pd.DataFrame.from_dict(values)
+    df = df.to_dict('records')
+    return df

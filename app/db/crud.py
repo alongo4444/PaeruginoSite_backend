@@ -658,11 +658,13 @@ def get_strain_column_data(db: Session, category_name):
     return df
 
 
+# for requirement 4.6
 def dict_of_clusters_related_to_gene(db: Session, strain, gene):
     """
     the function returns df that contains the cluster, the gene and the dictionary of all the other cluster
     :param db: the connection to the database
-    :param category_name: the name of the column we want to extract from the DB
+    :param strain: the name of the strain (it's the column name in clusters table)
+    :param gene: the name of the gene we are looking for
     :return: dataframe that contains the relevant information
     """
     search = "%{}%".format(gene)
@@ -670,4 +672,6 @@ def dict_of_clusters_related_to_gene(db: Session, strain, gene):
         .with_entities(models.Clusters.index, getattr(models.Clusters, strain.lower()),
                        models.Clusters.combined_index).filter(getattr(models.Clusters, strain.lower()).like(search)).all()
     df = pd.DataFrame.from_records(query, columns=['index', strain.lower(), 'combined_index'])
+    if df.empty:
+        return "No Results"
     return df
