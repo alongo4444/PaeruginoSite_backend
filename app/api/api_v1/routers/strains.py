@@ -298,3 +298,5 @@ async def get_genes_def_systems(strain_name, response: Response, db=Depends(get_
     if df == 'No Results':
         return Response(content="No Results", status_code=400)
     return df
+
+

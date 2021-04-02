@@ -47,6 +47,7 @@ class Strains(Base):
     scaffolds = Column("scaffolds", Integer)
     mlst_sequence_type = Column("mlst_sequence_type", Text)
     isolation_type = Column("isolation_type", Text)
+    cds = Column("cds", Integer)
 
 
 # class that is used for the 4.4 requirement
@@ -86,3 +87,11 @@ class StrainsDefenseSystems(Base):
 class DefenseSystems(Base):
     __tablename__ = "DefenseSystems"
     Name = Column("defense_system", Text, primary_key=True, index=True, nullable=False)
+
+
+class Clusters(Base):
+    __tablename__ = "Cluster"
+    index = Column("index", Integer, primary_key=True, index=True, nullable=False)
+    pa14 = Column("pa14", Text)
+    pao1 = Column("pao1", Text)
+    combined_index = Column("combined_index", Text)
