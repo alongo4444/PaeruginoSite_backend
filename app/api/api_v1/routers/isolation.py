@@ -22,6 +22,19 @@ isolation_router = r = APIRouter()
 
 sortObj = pysort.Sorting()
 
+# Returns the Isotypes names for the autocomplete at in the Frontend
+@r.get(
+    "/",
+    #response_model=t.List[GeneBase],
+    response_model_exclude_none=True,
+)
+async def isoTypes(
+):
+    """Get all genes"""
+    # This is necessary for react-admin to work
+    # response.headers["Content-Range"] = f"0-9/{len(users)}"
+    return [{'name': 'Clinical', 'key': 0},{'name': 'Environmental', 'key':1}]
+
 @r.get(
     "/isolation_tree",
     response_model_exclude_none=True,
