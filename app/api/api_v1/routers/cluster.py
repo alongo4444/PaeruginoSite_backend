@@ -23,23 +23,24 @@ cluster_router = r = APIRouter()
 sortObj = pysort.Sorting()
 
 
-# def get_resolution(x):
-#     if (x == 0):
-#         return 300
-#     return 300  # 0.183 * x + 23.672
-
-
 @r.get(
     "/cluster_tree",
-    # response_model=t.List[GeneBase],
     response_model_exclude_none=True,
+    status_code=200,
+
 )
 async def cluster_tree(
+        response: Response,
         list_strain_gene: List[str] = Query(None),
         subtree: Optional[List[int]] = Query([]),
         db=Depends(get_db)
 ):
-    """Get all strains"""
+    """
+    this function handles all requests to generate Phylogenetic tree from browse page in the website.
+    the function gets 2 list: one for layers of strains and genes that are needed to be shows and another to
+    subtrees the user might need. if the subtree list are empty: the system will show full tree.
+    this function also generate Dynamic R script in order to generate the tree.
+    """
     list_strains = get_strains_cluster(db, list_strain_gene)
     cluster_ids = ""
     for l in list_strains:
@@ -65,11 +66,7 @@ async def cluster_tree(
 
             all_strain_id = pd.merge(all_strain_id, data_id_strain, how='left', on="index")
             all_strain_id = all_strain_id.fillna(0)
-        # dict_id_strain = json.loads(strains[1].replace("'", "\""))
-        # data_id_strain = pd.DataFrame(dict_id_strain.items(), columns=['index', 'count'])
-        # data_id_strain['index'] = data_id_strain['index'].astype(int)
-        # complet_data = get_strain_id_name(db, data_id_strain)
-        # complet_data['count'] = complet_data['count']
+
         subtreeSort = []
         if len(subtree) > 0:
             subtreeSort = sortObj.radixSort(subtree)
@@ -193,7 +190,6 @@ async def cluster_tree(
         except Exception as e:
             print("dbc2csv - Error converting file: phylo_tree.R")
             print(e)
-
             return False
     else:
         return FileResponse('static/cluster/' + filename + ".png")
@@ -203,18 +199,20 @@ async def cluster_tree(
 
 @r.get(
     "/get_gene_strain/{strain_name}",
-    # response_model=t.List[GeneBase],
     response_model_exclude_none=True,
+    status_code=200,
 )
 async def get_gene_strain(
         strain_name,
-        response_model_exclude_none=True,
-        status_code=200,
+        response: Response,
         db=Depends(get_db)
 ):
-    gene = get_genes(db)  # need to add strains name to the function
-    list_genes = [d.get('locus_tag_copy') for d in gene]
-    return list_genes
+    try:
+        gene = get_genes(db)  # need to add strains name to the function
+        list_genes = [d.get('locus_tag_copy') for d in gene]
+        return list_genes
+    except Exception as e:
+        return Response(content="No Results", status_code=400)
 
 
 '''
@@ -224,28 +222,33 @@ this function used to get all the genes of a certain assembly of a strain
 
 @r.get(
     "/get_gene_strain_id/{strain_id}",
-    # response_model=t.List[GeneBase],
     response_model_exclude_none=True,
+    status_code=200,
 )
 async def get_gene_strain_id(
         strain_id,
-        response_model_exclude_none=True,
-        status_code=200,
+        response: Response,
         db=Depends(get_db)
 ):
-    gene = get_gene_by_strain(db, strain_id)
-    # need to add strains name to the function
-    list_genes = []
-    for row in gene:
-        d = dict(row.items())
-        list_genes.append(d['locus_tag'])
-    # list_genes = [d.get('locus_tag') for d in gene]
-    df = pd.DataFrame(list_genes, columns=['name'])
-    result = df.to_json(orient="records")
-    parsed = json.loads(result)
-    json.dumps(parsed, indent=4)
-    return parsed
-    # return list_genes
+    try:
+        gene = get_gene_by_strain(db, strain_id)
+        # need to add strains name to the function
+        if (len(gene) > 0):
+            list_genes = []
+            for row in gene:
+                d = dict(row.items())
+                list_genes.append(d['locus_tag'])
+            df = pd.DataFrame(list_genes, columns=['name'])
+            result = df.to_json(orient="records")
+            parsed = json.loads(result)
+            json.dumps(parsed, indent=4)
+            return parsed
+        else:
+            status_code = 400
+            return json.dumps({'name': "No Results"}, indent=4)
+    except Exception as e:
+        print(e)
+        return Response(content="No Results", status_code=400)
 
 
 @r.get(
