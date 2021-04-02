@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, Response, Query,HTTPException
+from fastapi import APIRouter, Depends, Response, Query, HTTPException
 import subprocess, os
 import pandas as pd
-from fastapi.responses import FileResponse,HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from app.db.session import get_db
 from app.db.crud import (
-    get_strains, get_strains_names, get_defense_systems_of_genes,get_strains_index
+    get_strains, get_strains_names, get_defense_systems_of_genes, get_strains_index
 )
 import numpy as np
 from pathlib import Path
@@ -16,34 +16,39 @@ from pathlib import Path
 
 strains_router = r = APIRouter()
 
+
 def random_color():
     ## this method generate a random color in hex form
     rand = lambda: np.random.randint(100, 255)
     return '#%02X%02X%02X' % (rand(), rand(), rand())
 
+
 def get_font_size(x):
     """
     this function gets the number of strains the user want to show and return compatible font size
     """
-    if(x ==0):
+    if (x == 0):
         return str(100)
-    return str(0.06*x+15.958)
+    return str(0.06 * x + 15.958)
+
 
 def get_spacing(x):
     """
    this function gets the number of strains the user want to show and return compatible spacing in legend of graph
    """
-    if(x ==0):
+    if (x == 0):
         return str(2)
-    return str(0.001162*x+0.311)
+    return str(0.001162 * x + 0.311)
+
 
 def get_offset(x):
     """
        this function gets the number of strains the user want to show and return compatible offset (spacing) between layers
        """
-    if(x ==0):
+    if (x == 0):
         return str(0.03)
-    return str(-0.0001*x+0.15)
+    return str(-0.0001 * x + 0.15)
+
 
 def get_resolution(x):
     """
@@ -66,13 +71,13 @@ def load_colors():
         colors = [x['color'] for x in li]
         names = [x['label'] for x in li]
     for (x, col) in zip(names, colors):
-        colors_dict[x.upper()] = col #save systems (key) and color(value) in dictionary and return it
+        colors_dict[x.upper()] = col  # save systems (key) and color(value) in dictionary and return it
 
     return colors_dict
 
 
-sortObj = pysort.Sorting() #sorting object
-colors = load_colors() #load colors to dictionary
+sortObj = pysort.Sorting()  # sorting object
+colors = load_colors()  # load colors to dictionary
 def_sys = ['SHEDU', 'RM', 'PAGOS', 'SEPTU', 'THOERIS', 'WADJET', 'ZORYA', 'ABI', 'BREX', 'CRISPR', 'DISARM', 'DND',
            'DRUANTIA', 'GABIJA', 'HACHIMAN', 'KIWA', 'LAMASSU']
 
@@ -89,6 +94,7 @@ async def strains_list(
     """get all the names and assembly id of all strains"""
     strains = get_strains_names(db)
     return strains
+
 
 @r.get(
     "/indexes",
@@ -111,6 +117,7 @@ async def strains_indexes(
 async def phylogenetic_tree(
         systems: Optional[List[str]] = Query([]),
         subtree: Optional[List[int]] = Query([]),
+        MLST: bool = False,
         db=Depends(get_db)
 ):
     """
@@ -120,7 +127,7 @@ async def phylogenetic_tree(
     on it. this function also generate Dynamic R script in order to generate the tree.
     """
     # generating filename
-    myPath = str(Path().resolve()).replace('\\','/')+'/static/def_Sys'
+    myPath = str(Path().resolve()).replace('\\', '/') + '/static/def_Sys'
     subtreeSort = []
     if len(systems) > 0:
         systems.sort()
@@ -133,7 +140,7 @@ async def phylogenetic_tree(
     # check if such query allready computed and return it. else, compute new given query.
     if not os.path.exists('static/def_Sys/' + filename + ".png"):
         # prepare POPEN variables needed
-        command = 'C:/Program Files/R/R-4.0.4/bin/Rscript.exe'
+        command = 'C:/Program Files/R/R-4.0.3/bin/Rscript.exe'
         # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
         arg = '--vanilla'
 
@@ -165,13 +172,26 @@ async def phylogenetic_tree(
                 subtree =c(""" + ",".join('"' + str(x) + '"' for x in subtreeSort) + """)
                 tree <- keep.tip(tree,subtree)
                 """
-        query = query + """
-            p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5) + geom_tiplab()
-                    """
         layer = 0
         query = query + """
-             dat1 <- read.csv('"""+myPath+"""/Defense_sys.csv')
+             dat1 <- read.csv('""" + myPath + """/Defense_sys.csv')
                 """
+        if MLST is True:
+            query = query +"""
+            # For the clade group
+                dat4 <- dat1 %>% select(c("index", "MLST"))
+                dat4 <- aggregate(.~MLST, dat4, FUN=paste, collapse=",")
+                clades <- lapply(dat4$index, function(x){unlist(strsplit(x,split=","))})
+                names(clades) <- dat4$MLST
+                
+                tree <- groupOTU(tree, clades, "MLST")
+                MLST <- NULL
+                p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5, aes(color=MLST)) + geom_tiplab()
+            """
+        else:
+            query = query + """
+                    p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5) + geom_tiplab()
+                            """
         for sys in systems:
             color = colors[sys]
             if (layer == 0):
@@ -188,11 +208,11 @@ async def phylogenetic_tree(
                                         fill='""" + color + """'
                                       ) + theme(
                                       
-                                        legend.text = element_text(size = """ + get_font_size(len(subtreeSort))+"""),
+                                        legend.text = element_text(size = """ + get_font_size(len(subtreeSort)) + """),
                                         legend.title = element_blank(),
                                         legend.margin=margin(c(0,200,0,0)),
-                                        legend.spacing = unit(""" +get_spacing(len(subtreeSort))+""","cm"),
-                                        legend.spacing.x = unit("""+get_spacing(len(subtreeSort))+""","cm")
+                                        legend.spacing = unit(""" + get_spacing(len(subtreeSort)) + ""","cm"),
+                                        legend.spacing.x = unit(""" + get_spacing(len(subtreeSort)) + ""","cm")
                                       )+
                                         scale_colour_manual(values = c('""" + color + """'), labels = c('""" + sys + """'))
                                       """
@@ -210,10 +230,10 @@ async def phylogenetic_tree(
                                         fill='""" + color + """'
                                       ) + theme(
                                         legend.margin=margin(c(0,200,0,0)),
-                                        legend.text = element_text(size = """ + get_font_size(len(subtreeSort))+"""),
+                                        legend.text = element_text(size = """ + get_font_size(len(subtreeSort)) + """),
                                         legend.title = element_blank(),
-                                        legend.spacing = unit(""" +get_spacing(len(subtreeSort))+""","cm"),
-                                        legend.spacing.x = unit("""+get_spacing(len(subtreeSort))+""","cm")
+                                        legend.spacing = unit(""" + get_spacing(len(subtreeSort)) + ""","cm"),
+                                        legend.spacing.x = unit(""" + get_spacing(len(subtreeSort)) + ""","cm")
                                       )+
                                         scale_colour_manual(values = c('""" + color + """'), labels = c('""" + sys + """'))
                                       """
@@ -221,7 +241,8 @@ async def phylogenetic_tree(
 
         resolution = get_resolution(len(subtreeSort))
         query = query + """
-            png("""+'"'+myPath+'/'+ filename + """.png", units="cm", width=""" +str(resolution)+""", height="""+str(resolution)+""", res=100)
+            png(""" + '"' + myPath + '/' + filename + """.png", units="cm", width=""" + str(
+            resolution) + """, height=""" + str(resolution) + """, res=100)
             plot(p)
             dev.off(0)"""
 
@@ -259,7 +280,7 @@ async def phylogenetic_tree(
 )
 async def strain_circos_graph(strain_name, response: Response):
     # the structure of the dir file will be stain_name.html and it will be stored in a specific directory.
-    strain_file = Path("static/"+strain_name+".html")
+    strain_file = Path("static/" + strain_name + ".html")
     if strain_file.is_file():
         return FileResponse(strain_file, status_code=200)
     else:
