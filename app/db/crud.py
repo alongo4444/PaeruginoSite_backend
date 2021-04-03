@@ -139,28 +139,20 @@ def get_genes(db: Session):
     df_from_records = pd.DataFrame.from_records(all_genes
                                                 , index='locus_tag'
                                                 , columns=['locus_tag',
-                                                           'genomic_accession_y',
-                                                           'start_y',
-                                                           'end_y',
-                                                           'strand_y',
-                                                           'product_accession_y',
-                                                           'name_y',
-                                                           'symbol_y',
-                                                           'geneID_y',
-                                                           'product_length_y',
+                                                           'assembly',
+                                                           'attributes_x',
+                                                           'genomic_accession',
+                                                           'start',
+                                                           'end',
+                                                           'strand',
+                                                           'product_accession',
+                                                           'name',
+                                                           'symbol',
                                                            'dna_sequence',
                                                            'protein_sequence'
                                                            ])
-    df_from_records['locus_tag_copy'] = df_from_records.index
-    # return FileResponse("../road-sign-361513_960_720.jpg")
+    df_from_records['locus_tag'] = df_from_records.index
     return df_from_records.to_dict('records')
-    # query = "select * from Genes"
-    # df = pd.read_sql(models.Genes, db.bind)
-    # df = pd.DataFrame(db.query(models.Genes).all())
-    # print(df.head(5))
-    # return db.query(models.Genes).all()
-    # return db.query(models.Genes).all()
-
 
 def get_strains_index(db: Session):
     """
