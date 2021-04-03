@@ -3,7 +3,7 @@ import json
 import os, subprocess
 
 import pandas as pd
-from fastapi import APIRouter, Query, Request, Depends, Response, encoders
+from fastapi import APIRouter, Query, Depends,HTTPException
 from typing import List, Optional
 from pathlib import Path
 
@@ -13,7 +13,7 @@ from starlette.responses import FileResponse
 from app.api.api_v1.routers.strains import get_offset, get_font_size, get_spacing, get_resolution
 from app.db.session import get_db
 from app.db.crud import (
-    get_strain_isolation
+    get_strain_isolation_mlst,get_strain_isolation
 )
 
 from app.db.schemas import GeneBase
@@ -41,7 +41,8 @@ async def isoTypes(
 )
 async def isolation_tree(
         subtree: Optional[List[int]] = Query([]),
-        db=Depends(get_db)
+        MLST: bool = False,
+        db=Depends(get_db),
 ):
     """
     this function handles all requests to generate Phylogenetic tree that contain the isolation type of
@@ -53,15 +54,16 @@ async def isolation_tree(
     str_list = 'all'
     if len(subtree) > 0:
         str_list = str_list + " ".join(str(x) for x in subtree)
+    str_list = str_list + str(MLST)
     filenameHash = hashlib.md5(str_list.encode())
     filename = filenameHash.hexdigest()
     my_file = Path(r'static/isolation/' + filename + ".png")
     myPath = str(Path().resolve()).replace('\\', '/') + '/static/isolation'
     if not os.path.exists(my_file):
-        command = 'C:/Program Files/R/R-4.0.4/bin/Rscript.exe'
+        command = 'C:/Program Files/R/R-4.0.3/bin/Rscript.exe'
         arg = '--vanilla'
         # data preprocessing for the R query
-        all_strain = get_strain_isolation(db)
+        all_strain = get_strain_isolation_mlst(db) if MLST is True else get_strain_isolation(db)
         subtreeSort = []
         all_strain['index'] = all_strain.index
         if len(subtree) > 0:
@@ -79,6 +81,8 @@ async def isolation_tree(
                     library(treeio)
                     library(ggnewscale)
                     library(ape)
+                    library(dplyr)
+
                     trfile <- system.file("extdata","our_tree.tree", package="ggtreeExtra")
                     tree <- read.tree(trfile) """
         if len(subtree) > 0:
@@ -87,12 +91,26 @@ async def isolation_tree(
                 tree <- keep.tip(tree,subtree)
                    """
         query = query + """
-            p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5) + geom_tiplab()
-                    """
-        query = query + """
              dat1 <- read.csv('""" + myPath + """/isolation.csv')
                 """
-        query = query + """p <- p + new_scale_fill() +
+        if MLST is True:
+            query = query + """
+            # For the clade group
+                dat4 <- dat1 %>% select(c("index", "MLST"))
+                dat4 <- aggregate(.~MLST, dat4, FUN=paste, collapse=",")
+                clades <- lapply(dat4$index, function(x){unlist(strsplit(x,split=","))})
+                names(clades) <- dat4$MLST
+
+                tree <- groupOTU(tree, clades, "MLST_color")
+                MLST <- NULL
+                p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5, aes(color=MLST_color), show.legend=FALSE)
+            """
+        else:
+            query = query + """
+                    p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5)
+                            """
+
+        query = query + """p <- p + new_scale_colour() +
                               geom_fruit(
                                 data=dat1,
                                 geom=geom_bar,
@@ -114,6 +132,7 @@ async def isolation_tree(
         resolution = get_resolution(len(subtreeSort))
 
         query = query + """
+            p <- p + geom_tiplab(show.legend=FALSE)
             png(""" + '"' + myPath + '/' + filename + """.png", units="cm", width=""" + str(
             resolution) + """, height=""" + str(resolution) + """, res=100)
             plot(p)
@@ -138,8 +157,8 @@ async def isolation_tree(
             print("dbc2csv - Error converting file: phylo_tree.R")
             print(e)
 
-            return False
+            raise HTTPException(status_code=404, detail=e)
     else:
         return FileResponse('static/isolation/' + filename + ".png")
 
-    return False
+    raise HTTPException(status_code=404, detail=e)
