@@ -60,7 +60,7 @@ async def isolation_tree(
     my_file = Path(r'static/isolation/' + filename + ".png")
     myPath = str(Path().resolve()).replace('\\', '/') + '/static/isolation'
     if not os.path.exists(my_file):
-        command = 'C:/Program Files/R/R-4.0.3/bin/Rscript.exe'
+        command = 'C:/Program Files/R/R-4.0.4/bin/Rscript.exe'
         arg = '--vanilla'
         # data preprocessing for the R query
         all_strain = get_strain_isolation_mlst(db) if MLST is True else get_strain_isolation(db)
