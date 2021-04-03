@@ -119,11 +119,13 @@ def get_genes_download(db: Session, selectedC, selectedAS):
 def get_genes(db: Session):
     # Defining the SQLAlchemy-query
     genes_query = db.query(models.Genes).with_entities(models.Genes.locus_tag,
+                                                       models.Genes.assembly,
+                                                       models.Genes.attributes_x,
                                                        models.Genes.genomic_accession,
                                                        models.Genes.start,
                                                        models.Genes.end,
                                                        models.Genes.strand,
-                                                       models.Genes.genomic_accession,
+                                                       models.Genes.product_accession,
                                                        models.Genes.name,
                                                        models.Genes.symbol,
                                                        models.Genes.dna_sequence,
@@ -234,6 +236,20 @@ def get_strain_isolation(db: Session):
                                                     models.Strains.isolation_type).all()
     df_from_records = pd.DataFrame.from_records(result, index='index', columns=['index', 'strain', 'isolation_type'])
     return df_from_records
+
+
+
+'''
+this get the strain id and the strain name and isolation type and mlst
+'''
+
+
+def get_strain_isolation_mlst(db: Session):
+    result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain,
+                                                    models.Strains.isolation_type,models.Strains.mlst_sequence_type).all()
+    df_from_records = pd.DataFrame.from_records(result, index='index', columns=['index', 'strain', 'isolation_type', 'mlst_sequence_type'])
+    return df_from_records
+
 
 
 '''

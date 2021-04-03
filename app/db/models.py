@@ -27,7 +27,6 @@ class Genes(Base):
     end = Column("end_g", Integer)
     strand = Column("strand", String)
     product_accession = Column("product_accession", Text)
-    # non-redundant_refseq_y = Column("non-redundant_refseq_y", Text)
     name = Column("name", Text)
     symbol = Column("symbol", Text)
     dna_sequence = Column("dna_sequence", Text)
