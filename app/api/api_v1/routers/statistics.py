@@ -75,11 +75,16 @@ async def get_correlation_between_defense_systems_and_attribute(response: Respon
     N = len(list(combined['index']))
     stat, p = mannwhitneyu(with_def_attr, without_def_attr)
     exp_number = "{:e}".format(p)
-    values = {"statistic": stat, "pvalue": exp_number, "N": N,
-              "K": len(with_def_attr), "n": len(without_def_attr),
-              "k":0, 'withDef': with_def_attr, 'withoutDef':without_def_attr}
-    # df = pd.DataFrame.from_dict(values)
-    # df = df.to_dict('records')
+    values_to_df = {"statistic": [stat], "pvalue": [exp_number], "N": [N],
+              "K": [len(with_def_attr)], "n": [len(without_def_attr)],
+              "k":[0]}
+    df = pd.DataFrame.from_dict(values_to_df)
+    df = df.to_dict('records')
+    values = []
+    values.append(df)
+    values.append(with_def_attr)
+    values.append(without_def_attr)
+
     return values
 
 
