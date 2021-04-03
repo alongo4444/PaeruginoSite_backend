@@ -4,7 +4,7 @@ import pandas as pd
 
 from app.db.session import get_db
 from app.db.crud import (
-    get_genes, get_genes_download, get_genes_by_defense, prepare_csv_file, prepare_zip, get_genes_by_cluster, prepare_fasta_file
+    get_genes, get_genes_download, get_genes_by_defense, prepare_csv_file, get_genes_by_cluster, prepare_fasta_file
 )
 from app.db.schemas import GeneBase
 

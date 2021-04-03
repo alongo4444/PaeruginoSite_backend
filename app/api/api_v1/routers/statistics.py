@@ -75,12 +75,36 @@ async def get_correlation_between_defense_systems_and_attribute(response: Respon
     N = len(list(combined['index']))
     stat, p = mannwhitneyu(with_def_attr, without_def_attr)
     exp_number = "{:e}".format(p)
-    values = {"statistic": stat, "pvalue": exp_number, "N": N,
-              "K": len(with_def_attr), "n": len(without_def_attr),
-              "k":0, 'withDef': with_def_attr, 'withoutDef':without_def_attr}
-    # df = pd.DataFrame.from_dict(values)
-    # df = df.to_dict('records')
+    values_to_df = {"statistic": [stat], "pvalue": [exp_number], "N": [N],
+              "K": [len(with_def_attr)], "n": [len(without_def_attr)],
+              "k":[0]}
+    df = pd.DataFrame.from_dict(values_to_df)
+    df = df.to_dict('records')
+    values = []
+    box_plot_with = prepare_data_for_box_plot(with_def, category.lower())
+    box_plot_without = prepare_data_for_box_plot(without_def, category.lower())
+    values.append(df)
+    values.append(box_plot_with)
+    values.append(box_plot_without)
+
     return values
+
+
+def prepare_data_for_box_plot(df, category):
+    """
+    the function takes a df and returns an array that contains all 5 values for the box-plot
+    :param df: the df we are checking
+    :param category: the column name we are extracting it's data
+    :return: the array of the relevant values
+    """
+    Q1 = df[category].describe().loc['25%']
+    Q2 = df[category].describe().loc['50%']
+    Q3 = df[category].describe().loc['75%']
+    min = df[category].describe().loc['min']
+    max = df[category].describe().loc['max']
+    all_params = [min, Q1, Q3, max, Q2]
+    # [min, Q1, Q3, max, Q2]
+    return all_params
 
 
 @r.get(
@@ -91,7 +115,7 @@ async def get_correlation_between_defense_systems_and_attribute(response: Respon
 async def get_correlation_between_defense_systems_and_iso_type(response: Response,
                                                   system: str, isoType: str,
                                                   db=Depends(get_db)):
-    correct_params = ['environmental/other', 'clinical']
+    correct_params = ['Environmental/other', 'Clinical']
     if isoType not in correct_params:
         return Response(content="Wrong isotype", status_code=400)
     names_of_def_systems = get_defense_systems_names(db, True)
@@ -165,7 +189,7 @@ async def get_correlation_between_defense_systems_and_cluster(response: Response
 async def get_correlation_between_cluster_and_isotype(response: Response,
                                                   isoType: str, strain: str, gene: str,
                                                   db=Depends(get_db)):
-    correct_params = ['environmental/other', 'clinical']
+    correct_params = ['Environmental/other', 'Clinical']
     if isoType not in correct_params:
         return Response(content="Wrong isotype", status_code=400)
     valid_strain = ['pao1', 'pa14']

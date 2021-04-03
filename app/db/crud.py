@@ -406,62 +406,6 @@ def prepare_csv_file(dafaframe):
     return response
 
 
-# returns a zip file of a several CSV of dataframes to the frontend
-def prepare_zip(dafaframes):
-    files = []
-
-    csv_buffer = io.StringIO()
-    for n, d in enumerate(dafaframes):
-        output = io.StringIO()
-        csvdata = [1, 2, 'a', 'He said "what do you mean?"', "Whoa!\nNewlines!"]
-        writer = csv.writer(output, quoting=csv.QUOTE_NONNUMERIC)
-        writer.writerow(csvdata)
-
-        files.append(output)
-
-    outfile = io.BytesIO()
-    with zipfile.ZipFile(outfile, 'w') as zf:
-        for n, f in enumerate(files):
-            zf.writestr("{}.csv".format(n), f.read())
-
-        outfile.seek(0)
-        # Returns a csv prepared to be downloaded in the FrontEnd
-        response = StreamingResponse(iter([outfile.getvalue()]),
-                                     media_type="application/zip"
-                                     )
-
-        response.headers["Content-Disposition"] = "attachment; filename=test.zip"
-
-        return response
-
-    # zipped_file = zipFiles(dafaframes)
-    return response
-
-
-def newcsv(data, csvheader, fieldnames):
-    """
-    Create a new csv file that represents generated data.
-    """
-    csvrow = []
-    new_csvfile = io.StringIO()
-    wr = csv.writer(new_csvfile, quoting=csv.QUOTE_ALL)
-    wr.writerow(csvheader)
-    wr = csv.DictWriter(new_csvfile, fieldnames=fieldnames)
-
-    for key in data.keys():
-        wr.writerow(data[key])
-
-    return new_csvfile
-
-
-def zipFiles(dafaframes):
-    outfile = "export.zip"
-    with zipfile.ZipFile(outfile, 'w') as zf:
-        for n, f in enumerate(dafaframes):
-            zf.writestr("{}.csv".format(str(n)), pd.DataFrame(f).to_csv())
-        return zf
-
-
 def get_defense_systems_of_genes(db: Session, strain_name):
     """
     the function returns all the information about defense system of a specific strain
@@ -541,7 +485,14 @@ def get_genes_by_cluster(db: Session, genes):
         my_query = "SELECT {} FROM \"Genes\"".format(cols)
         results = db.execute(my_query).fetchall()
         df_from_records_all_genes = pd.DataFrame(results, columns=col_names)
-        frames.append(df_from_records_g.merge(df_from_records_all_genes))
+        res = df_from_records_g.merge(df_from_records_all_genes)
+
+        # move cluster_index column to first column
+        mid = res['cluster_index']
+        res.drop(labels=['cluster_index'], axis=1, inplace=True)
+        res.insert(0, 'cluster_index', mid)
+
+        frames.append(res)
         # df_from_records_all_genes['locus_tag'] =  df_from_records_all_genes['attributes_x']
         # df_from_records_all_genes['locus_tag'] = df_from_records_all_genes['locus_tag'].apply(lambda x: remove_old_locus_string(x))
         # frames.append(df_from_records_g.merge(df_from_records_all_genes))
@@ -555,19 +506,16 @@ def remove_old_locus_string(s):
         return s.replace('old_locus_tag=', '')
     return s
 
-
+# prepares a fasta file. returns as a text file to the user. the front end needs to translate it into a .faa file.
 def prepare_fasta_file(df, prot):
     final_txt = ""
     for index, row in df.iterrows():
-        locus_tag, start_g, end_g, name, g_accession = row['locus_tag'], row['start_g'], row['end_g'], row['name'], row[
-            'genomic_accession']
+        locus_tag, start_g, end_g, name, g_accession, cluster_index,product_accession  = row['locus_tag'], row['start_g'], row['end_g'], row['name'], row['genomic_accession'], row['cluster_index'], row['product_accession']
         seq = row['protein_sequence'] if prot else row['dna_sequence']
-        every = 80
-        seq = '\n'.join(seq[i:i + every] for i in range(0, len(seq), every))
+        every = 120
+        seq = '\n'.join(seq[i:i+every] for i in range(0, len(seq), every))
         type = 'prot' if prot else 'dna'
-        newentry = ">lcl|{}_{} [locus_tag = {}] [location = {}..{}] [name = {}] \n {} \n".format(g_accession, type,
-                                                                                                 locus_tag, start_g,
-                                                                                                 end_g, name, seq)
+        newentry = ">{}_{} [locus_tag = {}] [location = {}..{}] [name = {}] [cluster_index = {}] [product_accession = {}] \n{}\n".format(g_accession,type,locus_tag,start_g,end_g,name,cluster_index,product_accession,seq)
         final_txt += newentry
 
     output = io.StringIO()
