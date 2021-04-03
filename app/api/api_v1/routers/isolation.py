@@ -35,6 +35,20 @@ async def isoTypes(
     # response.headers["Content-Range"] = f"0-9/{len(users)}"
     return [{'name': 'Clinical', 'key': 0},{'name': 'Environmental/other', 'key':1}]
 
+
+# Returns the attributes names for the autocomplete at in the Frontend
+@r.get(
+    "/attributes",
+    #response_model=t.List[GeneBase],
+    response_model_exclude_none=True,
+)
+async def attributes(
+):
+    """Get all genes"""
+    # This is necessary for react-admin to work
+    # response.headers["Content-Range"] = f"0-9/{len(users)}"
+    return [{'name': 'size', 'key': 0},{'name': 'gc', 'key':1}, {'name': 'cds', 'key':2}]
+
 @r.get(
     "/isolation_tree",
     response_model_exclude_none=True,
