@@ -3,7 +3,7 @@ import json
 import os, subprocess
 
 import pandas as pd
-from fastapi import APIRouter, Query, Request, Depends, Response, encoders
+from fastapi import APIRouter, Query, Request, Depends, Response, HTTPException
 from typing import List, Optional
 from pathlib import Path
 
@@ -13,7 +13,7 @@ from starlette.responses import FileResponse
 from app.api.api_v1.routers.strains import get_offset, get_font_size, get_spacing, get_resolution
 from app.db.session import get_db
 from app.db.crud import (
-    get_genes, get_strains_cluster, get_strain_id_name, get_strains, get_defense_system_names, get_gene_by_strain
+    get_genes, get_strains_cluster, get_strain_id_name, get_strains_MLST, get_defense_system_names, get_gene_by_strain
 )
 
 from app.db.schemas import GeneBase
@@ -23,23 +23,25 @@ cluster_router = r = APIRouter()
 sortObj = pysort.Sorting()
 
 
-# def get_resolution(x):
-#     if (x == 0):
-#         return 300
-#     return 300  # 0.183 * x + 23.672
-
-
 @r.get(
     "/cluster_tree",
-    # response_model=t.List[GeneBase],
     response_model_exclude_none=True,
+    status_code=200,
+
 )
 async def cluster_tree(
+        response: Response,
         list_strain_gene: List[str] = Query(None),
         subtree: Optional[List[int]] = Query([]),
+        MLST: bool = False,
         db=Depends(get_db)
 ):
-    """Get all strains"""
+    """
+    this function handles all requests to generate Phylogenetic tree from browse page in the website.
+    the function gets 2 list: one for layers of strains and genes that are needed to be shows and another to
+    subtrees the user might need. if the subtree list are empty: the system will show full tree.
+    this function also generate Dynamic R script in order to generate the tree.
+    """
     list_strains = get_strains_cluster(db, list_strain_gene)
     cluster_ids = ""
     for l in list_strains:
@@ -48,16 +50,17 @@ async def cluster_tree(
     if len(subtree) > 0:
         str_list = " ".join(str(x) for x in subtree)
     cluster_ids = cluster_ids + str_list
+    cluster_ids = cluster_ids + str(MLST)
     filenameHash = hashlib.md5(cluster_ids.encode())
     filename = filenameHash.hexdigest()
     my_file = Path(r'static/cluster/' + filename + ".png")
     myPath = str(Path().resolve()).replace('\\', '/') + '/static/cluster'
     if not os.path.exists(my_file):
-        command = 'C:/Program Files/R/R-4.0.4/bin/Rscript.exe'
+        command = 'C:/Program Files/R/R-4.0.3/bin/Rscript.exe'
         # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
         arg = '--vanilla'
         # data preprocessing for the R query
-        all_strain_id = get_strain_id_name(db)
+        all_strain_id = get_strains_MLST(db) if MLST is True else get_strain_id_name(db)
         for i in range(len(list_strains)):
             dict_id_strain = json.loads(list_strains[i][1].replace("'", "\""))
             data_id_strain = pd.DataFrame(dict_id_strain.items(), columns=['index', 'count' + str(i)])
@@ -65,11 +68,7 @@ async def cluster_tree(
 
             all_strain_id = pd.merge(all_strain_id, data_id_strain, how='left', on="index")
             all_strain_id = all_strain_id.fillna(0)
-        # dict_id_strain = json.loads(strains[1].replace("'", "\""))
-        # data_id_strain = pd.DataFrame(dict_id_strain.items(), columns=['index', 'count'])
-        # data_id_strain['index'] = data_id_strain['index'].astype(int)
-        # complet_data = get_strain_id_name(db, data_id_strain)
-        # complet_data['count'] = complet_data['count']
+
         subtreeSort = []
         if len(subtree) > 0:
             subtreeSort = sortObj.radixSort(subtree)
@@ -84,6 +83,8 @@ async def cluster_tree(
                     library(treeio)
                     library(ggnewscale)
                     library(ape)
+                    library(dplyr)
+                    
                     trfile <- system.file("extdata","our_tree.tree", package="ggtreeExtra")
                     tree <- read.tree(trfile) """
         if len(subtree) > 0:
@@ -92,14 +93,28 @@ async def cluster_tree(
                 tree <- keep.tip(tree,subtree)
                    """
         query = query + """
-            p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5) + geom_tiplab()
-                    """
-        query = query + """
-             dat1 <- read.csv('""" + myPath + """/cluster.csv')
-                """
+                     dat1 <- read.csv('""" + myPath + """/cluster.csv')
+                        """
+        if MLST is True:
+            query = query + """
+            # For the clade group
+                dat4 <- dat1 %>% select(c("index", "MLST"))
+                dat4 <- aggregate(.~MLST, dat4, FUN=paste, collapse=",")
+                clades <- lapply(dat4$index, function(x){unlist(strsplit(x,split=","))})
+                names(clades) <- dat4$MLST
+
+                tree <- groupOTU(tree, clades, "MLST_color")
+                MLST <- NULL
+                p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5, aes(color=MLST_color), show.legend=FALSE)
+            """
+        else:
+            query = query + """
+                    p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5)
+                            """
+
         layer = len(list_strains)
         if layer >= 1:
-            query = query + """p <- p + new_scale_fill() +
+            query = query + """p <- p + new_scale_colour() +
                                   geom_fruit(
                                     data=dat1,
                                     geom=geom_bar,
@@ -170,6 +185,7 @@ async def cluster_tree(
         resolution = get_resolution(len(subtreeSort))
         # resolution = 300
         query = query + """
+            p <- p + geom_tiplab(show.legend=FALSE)
             png(""" + '"' + myPath + '/' + filename + """.png", units="cm", width=""" + str(
             resolution) + """, height=""" + str(resolution) + """, res=100)
             plot(p)
@@ -193,28 +209,29 @@ async def cluster_tree(
         except Exception as e:
             print("dbc2csv - Error converting file: phylo_tree.R")
             print(e)
-
-            return False
+            raise HTTPException(status_code=404, detail="e")
     else:
         return FileResponse('static/cluster/' + filename + ".png")
 
-    return False
+    raise HTTPException(status_code=404, detail="e")
 
 
 @r.get(
     "/get_gene_strain/{strain_name}",
-    # response_model=t.List[GeneBase],
     response_model_exclude_none=True,
+    status_code=200,
 )
 async def get_gene_strain(
         strain_name,
-        response_model_exclude_none=True,
-        status_code=200,
+        response: Response,
         db=Depends(get_db)
 ):
-    gene = get_genes(db)  # need to add strains name to the function
-    list_genes = [d.get('locus_tag_copy') for d in gene]
-    return list_genes
+    try:
+        gene = get_genes(db)  # need to add strains name to the function
+        list_genes = [d.get('locus_tag_copy') for d in gene]
+        return list_genes
+    except Exception as e:
+        return Response(content="No Results", status_code=400)
 
 
 '''
@@ -224,28 +241,33 @@ this function used to get all the genes of a certain assembly of a strain
 
 @r.get(
     "/get_gene_strain_id/{strain_id}",
-    # response_model=t.List[GeneBase],
     response_model_exclude_none=True,
+    status_code=200,
 )
 async def get_gene_strain_id(
         strain_id,
-        response_model_exclude_none=True,
-        status_code=200,
+        response: Response,
         db=Depends(get_db)
 ):
-    gene = get_gene_by_strain(db, strain_id)
-    # need to add strains name to the function
-    list_genes = []
-    for row in gene:
-        d = dict(row.items())
-        list_genes.append(d['locus_tag'])
-    # list_genes = [d.get('locus_tag') for d in gene]
-    df = pd.DataFrame(list_genes, columns=['name'])
-    result = df.to_json(orient="records")
-    parsed = json.loads(result)
-    json.dumps(parsed, indent=4)
-    return parsed
-    # return list_genes
+    try:
+        gene = get_gene_by_strain(db, strain_id)
+        # need to add strains name to the function
+        if (len(gene) > 0):
+            list_genes = []
+            for row in gene:
+                d = dict(row.items())
+                list_genes.append(d['locus_tag'])
+            df = pd.DataFrame(list_genes, columns=['name'])
+            result = df.to_json(orient="records")
+            parsed = json.loads(result)
+            json.dumps(parsed, indent=4)
+            return parsed
+        else:
+            status_code = 400
+            return json.dumps({'name': "No Results"}, indent=4)
+    except Exception as e:
+        print(e)
+        return Response(content="No Results", status_code=400)
 
 
 @r.get(

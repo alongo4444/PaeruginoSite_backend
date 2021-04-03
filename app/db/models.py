@@ -14,9 +14,10 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
 
+
 class Genes(Base):
     __tablename__ = "Genes"
-    #SELECT index, assembly, genomic_accession, start_g, end_g, strand, symbol, locus_tag,
+    # SELECT index, assembly, genomic_accession, start_g, end_g, strand, symbol, locus_tag,
     # attributes_x, product_accession, nonredundant_refseq, name, protein_sequence, dna_sequence
     #
     locus_tag = Column("locus_tag", Text, primary_key=True, index=True, nullable=False)
@@ -27,7 +28,6 @@ class Genes(Base):
     end = Column("end_g", Integer)
     strand = Column("strand", String)
     product_accession = Column("product_accession", Text)
-    # non-redundant_refseq_y = Column("non-redundant_refseq_y", Text)
     name = Column("name", Text)
     symbol = Column("symbol", Text)
     dna_sequence = Column("dna_sequence", Text)
@@ -37,7 +37,7 @@ class Genes(Base):
 class Strains(Base):
     __tablename__ = "Strains"
     index = Column("index", Text, primary_key=True, index=True, nullable=False)
-    assembly_genbank = Column("assembly_genbank", Text) #assembly
+    assembly_genbank = Column("assembly_genbank", Text)  # assembly
     strain = Column("strain", Text)
     assembly_refseq = Column("assembly_refseq", Text)
     level = Column("level", Text)
