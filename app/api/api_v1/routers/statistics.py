@@ -81,11 +81,30 @@ async def get_correlation_between_defense_systems_and_attribute(response: Respon
     df = pd.DataFrame.from_dict(values_to_df)
     df = df.to_dict('records')
     values = []
+    box_plot_with = prepare_data_for_box_plot(with_def, category.lower())
+    box_plot_without = prepare_data_for_box_plot(without_def, category.lower())
     values.append(df)
-    values.append(with_def_attr)
-    values.append(without_def_attr)
+    values.append(box_plot_with)
+    values.append(box_plot_without)
 
     return values
+
+
+def prepare_data_for_box_plot(df, category):
+    """
+    the function takes a df and returns an array that contains all 5 values for the box-plot
+    :param df: the df we are checking
+    :param category: the column name we are extracting it's data
+    :return: the array of the relevant values
+    """
+    Q1 = df[category].describe().loc['25%']
+    Q2 = df[category].describe().loc['50%']
+    Q3 = df[category].describe().loc['75%']
+    min = df[category].describe().loc['min']
+    max = df[category].describe().loc['max']
+    all_params = [min, Q1, Q3, max, Q2]
+    # [min, Q1, Q3, max, Q2]
+    return all_params
 
 
 @r.get(
