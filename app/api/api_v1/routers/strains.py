@@ -66,6 +66,7 @@ def load_colors():
     """
     # Opening JSON file colors.json
     colors_dict = dict()
+    "static/def_Sys/colors.json"
     with open("static/def_Sys/colors.json") as f:
         li = json.load(f)
         colors = [x['color'] for x in li]
