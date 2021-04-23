@@ -24,6 +24,7 @@ app = FastAPI(
     title=config.PROJECT_NAME, docs_url="/api/docs", openapi_url="/api"
 )
 
+
 #app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
