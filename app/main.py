@@ -23,7 +23,8 @@ app = FastAPI(
     title=config.PROJECT_NAME, docs_url="/api/docs", openapi_url="/api"
 )
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+
+#app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,8 +44,8 @@ async def db_session_middleware(request: Request, call_next):
 
 
 @app.get("/api/v1/tables")
-async def example_task(request):
-    request.state.db
+async def example_task():
+    #request.state.db
 
     return {"message": "success"}
 
