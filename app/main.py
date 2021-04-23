@@ -2,7 +2,9 @@ from fastapi import FastAPI, Depends
 from starlette.requests import Request
 from fastapi.middleware.cors import CORSMiddleware;
 import uvicorn
-from fastapi.staticfiles import StaticFiles
+#from fastapi.staticfiles import StaticFiles
+from starlette.staticfiles import StaticFiles
+
 from app.api.api_v1.routers.genes import genes_router
 from app.api.api_v1.routers.isolation import isolation_router
 from app.api.api_v1.routers.strains import strains_router
@@ -22,7 +24,8 @@ app = FastAPI(
     title=config.PROJECT_NAME, docs_url="/api/docs", openapi_url="/api"
 )
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+
+#app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
@@ -42,8 +45,8 @@ async def db_session_middleware(request: Request, call_next):
 
 
 @app.get("/api/v1/tables")
-async def example_task(request):
-    request.state.db
+async def example_task():
+    #request.state.db
 
     return {"message": "success"}
 

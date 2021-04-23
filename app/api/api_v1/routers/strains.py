@@ -3,6 +3,7 @@ import subprocess, os
 import pandas as pd
 from fastapi.responses import FileResponse
 from app.db.session import get_db
+from app.static.def_Sys.colors import dict_color
 from app.db.crud import (
     get_strain_isolation_mlst, get_strains_names, get_defense_systems_of_genes, get_strains_index,
     get_defense_systems_names
@@ -80,10 +81,10 @@ def load_colors():
     """
     # Opening JSON file colors.json
     colors_dict = dict()
-    with open("static/def_Sys/colors.json") as f:
-        li = json.load(f)
-        colors = [x['color'] for x in li]
-        names = [x['label'] for x in li]
+    #with open(os.path.abspath("static\def_Sys\colors.json"), 'r') as f:
+    li = dict_color() #json.load(f)
+    colors = [x['color'] for x in li]
+    names = [x['label'] for x in li]
     for (x, col) in zip(names, colors):
         colors_dict[x.upper()] = col  # save systems (key) and color(value) in dictionary and return it
 
@@ -161,7 +162,7 @@ async def phylogenetic_tree(
     # check if such query allready computed and return it. else, compute new given query.
     if not os.path.exists('static/def_Sys/' + filename + ".png"):
         # prepare POPEN variables needed
-        command = 'C:/Program Files/R/R-4.0.3/bin/Rscript.exe'
+        command = 'C:/Program Files/R/R-4.0.4/bin/Rscript.exe'
         # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
         arg = '--vanilla'
         # data preprocessing for the R query
