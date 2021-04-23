@@ -3,6 +3,7 @@ import subprocess, os
 import pandas as pd
 from fastapi.responses import FileResponse, HTMLResponse
 from app.db.session import get_db
+from app.static.def_Sys.colors import dict_color
 from app.db.crud import (
     get_strain_isolation_mlst, get_strains_names, get_defense_systems_of_genes, get_strains_index
 )
@@ -66,10 +67,10 @@ def load_colors():
     """
     # Opening JSON file colors.json
     colors_dict = dict()
-    with open("static/def_Sys/colors.json") as f:
-        li = json.load(f)
-        colors = [x['color'] for x in li]
-        names = [x['label'] for x in li]
+    #with open(os.path.abspath("static\def_Sys\colors.json"), 'r') as f:
+    li = dict_color() #json.load(f)
+    colors = [x['color'] for x in li]
+    names = [x['label'] for x in li]
     for (x, col) in zip(names, colors):
         colors_dict[x.upper()] = col  # save systems (key) and color(value) in dictionary and return it
 
