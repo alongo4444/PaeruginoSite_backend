@@ -5,11 +5,13 @@ from sqlalchemy.orm import sessionmaker
 from app.core import config
 
 engine = create_engine(
-    config.SQLALCHEMY_DATABASE_URI,
+    # config.SQLALCHEMY_DATABASE_URI,
+    "postgresql+psycopg2://postgres:postgres@localhost:5432/PaeruginosaDB"
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
+
 
 # Dependency
 def get_db():
