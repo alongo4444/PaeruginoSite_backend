@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, Response, Query, HTTPException
 import subprocess, os
 import pandas as pd
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse
 from app.db.session import get_db
+from app.static.def_Sys.colors import dict_color
 from app.db.crud import (
-    get_strain_isolation_mlst, get_strains_names, get_defense_systems_of_genes, get_strains_index
+    get_strain_isolation_mlst, get_strains_names, get_defense_systems_of_genes, get_strains_index,
+    get_defense_systems_names
 )
 import numpy as np
 from pathlib import Path
@@ -17,10 +19,23 @@ from pathlib import Path
 strains_router = r = APIRouter()
 
 
+def validate_params(systems, subtree, strains, db_systems):
+    all_sys = [x['name'] for x in db_systems]
+    systems = [sys for sys in systems if sys in all_sys]
+    subtree = [strain for strain in subtree if strain in strains['index']]
+    return systems, subtree
+
+
 def random_color():
     ## this method generate a random color in hex form
     rand = lambda: np.random.randint(100, 255)
     return '#%02X%02X%02X' % (rand(), rand(), rand())
+
+
+def get_first_layer_offset(x):
+    if x > 1100 or x == 0:
+        return str(0.08)
+    return str(0.00000038 * (x ** 2) - 0.00097175 * x + 0.67964847)
 
 
 def get_font_size(x):
@@ -66,10 +81,10 @@ def load_colors():
     """
     # Opening JSON file colors.json
     colors_dict = dict()
-    with open("static/def_Sys/colors.json") as f:
-        li = json.load(f)
-        colors = [x['color'] for x in li]
-        names = [x['label'] for x in li]
+    #with open(os.path.abspath("static\def_Sys\colors.json"), 'r') as f:
+    li = dict_color() #json.load(f)
+    colors = [x['color'] for x in li]
+    names = [x['label'] for x in li]
     for (x, col) in zip(names, colors):
         colors_dict[x.upper()] = col  # save systems (key) and color(value) in dictionary and return it
 
@@ -120,12 +135,18 @@ async def phylogenetic_tree(
         MLST: bool = False,
         db=Depends(get_db)
 ):
+
     """
     this function handles all requests to generate Phylogenetic tree from browse page in the website.
     the function gets 2 arrays: one for the defense systems and needs to be shows and another to
     subtrees the user might need. if they are empty: the system will show full tree with no defense systems
     on it. this function also generate Dynamic R script in order to generate the tree.
     """
+    # validate parameters using DB pre-defined strains and def-systems
+    strains = get_strain_isolation_mlst(db)
+    db_systems = get_defense_systems_names(db)
+    systems, subtree = validate_params(systems, subtree, strains, db_systems)
+
     # generating filename
     myPath = str(Path().resolve()).replace('\\', '/') + '/static/def_Sys'
     subtreeSort = []
@@ -144,9 +165,7 @@ async def phylogenetic_tree(
         command = 'C:/Program Files/R/R-4.0.4/bin/Rscript.exe'
         # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
         arg = '--vanilla'
-
         # data preprocessing for the R query
-        strains = get_strain_isolation_mlst(db)
         strains['Defense_sys'] = np.random.choice(def_sys, strains.shape[
             0])  # todo remove when defense systems are uploaded to db
         # strains = strains[['index', 'strain', 'Defense_sys']]
@@ -206,7 +225,7 @@ async def phylogenetic_tree(
                                         orientation="y",
                                         width=1,
                                         pwidth=0.05,
-                                        offset = """ + get_offset(len(subtreeSort)) + """,
+                                        offset = """ + get_first_layer_offset(len(subtreeSort)) + """,
                                         stat="identity",
                                         fill='""" + color + """'
                                       ) + theme(
@@ -244,7 +263,9 @@ async def phylogenetic_tree(
 
         resolution = get_resolution(len(subtreeSort))
         query = query + """
-            p <- p + geom_tiplab(show.legend=FALSE)
+            dat1$index <- as.character(dat1$index)
+            tree <- full_join(tree, dat1, by = c("label" = "index"))
+            p <- p %<+% dat1  + geom_tiplab(show.legend=FALSE,aes(label=strain))
             png(""" + '"' + myPath + '/' + filename + """.png", units="cm", width=""" + str(
             resolution) + """, height=""" + str(resolution) + """, res=100)
             plot(p)
