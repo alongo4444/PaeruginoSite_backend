@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse
 from app.api.api_v1.routers.strains import (
     get_first_layer_offset, get_resolution
 )
+import itertools
 
 sortObj = pysort.Sorting()  # sorting object
 defense_systems_router = r = APIRouter()
@@ -30,6 +31,34 @@ def validate_params(subtree, strains):
     return subtree
 
 
+def combinationUtil(arr, n, index, data, i,triplets, r=3):
+    """
+    # arr[] ---> Input Array
+    # data[] ---> Temporary array to store current combination
+    # start & end ---> Staring and Ending indexes in arr[]
+    # index ---> Current index in data[]
+    # r ---> Size of a combination to be printed
+    """
+
+    # Current combination is, ready to be saved,save it
+    if (index == r):
+        triplets.append(data)
+        return
+
+    # When no more elements are there to put in data[]
+    if (i >= n):
+        return
+
+    # current is included,put next at next location
+    data[index] = arr[i]
+    combinationUtil(arr, n,
+                    index + 1, data, i + 1,triplets,r)
+
+    # current is excluded, replace it with next (Note that i+1 is passed, but index is not changed)
+    combinationUtil(arr, n, index,
+                    data, i + 1,triplets,r)
+
+
 # returns all of the defense systems
 
 
@@ -41,6 +70,20 @@ def validate_params(subtree, strains):
 async def get_defense_systems(response: Response, db=Depends(get_db)):
     df = get_defense_systems_names(db)
     return df
+
+
+@r.get(
+    "/triplets",
+    response_model_exclude_none=True,
+    status_code=200,
+)
+async def get_triplets(response: Response, db=Depends(get_db)):
+    df = get_defense_systems_names(db)
+    names = [x['name'] for x in df]
+    # A temporary array to store all combination one by one
+    triplets = list(itertools.combinations(names, 3))
+
+    return triplets
 
 
 @r.get(
