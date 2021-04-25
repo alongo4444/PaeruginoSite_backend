@@ -640,3 +640,16 @@ def get_strains_MLST(db: Session):
     result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain,models.Strains.mlst_sequence_type).all()
     df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain', 'MLST'])
     return df_from_records
+
+
+def get_colors_dict(db: Session):
+    """
+    the function returns a dictionary of colors
+    :param db: the connection to the database
+    :return: dictionary of colors
+    """
+    result = db.query(models.Colors).with_entities(models.Colors.value, models.Colors.label,models.Colors.color).all()
+    df_from_records = pd.DataFrame.from_records(result, columns=['value', 'label', 'color'])
+    print(df_from_records)
+    dict = df_from_records.to_dict(orient='records')
+    return dict

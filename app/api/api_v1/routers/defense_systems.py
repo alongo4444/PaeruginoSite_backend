@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, Depends, Response, encoders, Query, HTTPException
 from app.db.session import get_db
 from app.db.crud import (
-    get_defense_systems_names, get_strain_isolation_mlst
+    get_defense_systems_names, get_strain_isolation_mlst, get_colors_dict
 )
 from typing import List, Optional
 from pathlib import Path
