@@ -280,7 +280,7 @@ async def strains_list(
         db=Depends(get_db)
 ):
     """Get all strains"""
-    ds = get_defense_system_names()
+    ds = get_defense_system_names(db)
     # This is necessary for react-admin to work
     # response.headers["Content-Range"] = f"0-9/{len(users)}"
     if ds is None:
