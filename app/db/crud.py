@@ -1,7 +1,6 @@
 import io
 import zipfile
 import csv
-
 from bs4 import BeautifulSoup
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, class_mapper, defer
@@ -665,8 +664,8 @@ def get_colors_dict(db: Session):
     :param db: the connection to the database
     :return: dictionary of colors
     """
-    result = db.query(models.Colors).with_entities(models.Colors.value, models.Colors.label,models.Colors.color).all()
-    df_from_records = pd.DataFrame.from_records(result, columns=['value', 'label', 'color'])
-    print(df_from_records)
-    dict = df_from_records.to_dict(orient='records')
-    return dict
+    # result = db.query(models.Colors).with_entities(models.Colors.value, models.Colors.label,models.Colors.color).all()
+    # df_from_records = pd.DataFrame.from_records(result, columns=['value', 'label', 'color'])
+    # print(df_from_records)
+    # dict = df_from_records.to_dict(orient='records')
+    return {}#dict
