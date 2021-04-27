@@ -32,6 +32,7 @@ class Genes(Base):
     symbol = Column("symbol", Text)
     dna_sequence = Column("dna_sequence", Text)
     protein_sequence = Column("protein_sequence", Text)
+    nonredundant_refseq = Column("nonredundant_refseq", Text)
 
 
 class Strains(Base):
