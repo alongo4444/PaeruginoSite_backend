@@ -255,8 +255,8 @@ async def get_gene_strain_id(
         if (len(gene) > 0):
             list_genes = []
             for row in gene:
-                d = dict(row.items())
-                list_genes.append(d['locus_tag'])
+                # d = dict(row.items())
+                list_genes.append(row)
             df = pd.DataFrame(list_genes, columns=['name'])
             result = df.to_json(orient="records")
             parsed = json.loads(result)
