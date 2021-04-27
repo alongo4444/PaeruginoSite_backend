@@ -297,49 +297,6 @@ def parse_circos_html(html_file):
 
     return res_dict
 
-
-# returns all the names of the defense systems
-def get_defense_system_names():
-    # try:
-    #     headers = pd.read_csv('static/def_Sys/Defense_sys.csv', index_col=0, nrows=0).columns.tolist()
-    #     ds_names = headers[2:]
-    #     for idx,h in enumerate(ds_names):
-    #         ds_names[idx] = h.replace('Defense_sys_','')
-    # except:
-    #     print("static/def_Sys/Defense_sys.csv was not found.")
-    #     return None
-
-    try:
-        cols = pd.read_csv('static/def_Sys/Defense_Systems_Names.csv')
-
-        print('s')
-    except:
-        print("static/def_Sys/Defense_sys.csv was not found.")
-        return None
-    ds_names = cols['Name'].apply(lambda x: x.split('|')[0])
-    ds_names = ds_names.unique()
-    ds_names = list(filter(lambda x: 'Anti-CRISPR' not in x, ds_names))
-    # ds_names = ['CRISPER-CAS' if x=='CRISPERCAS' else x for x in ds_names]
-    ds_names = sorted(ds_names)
-    # my_query = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Cluster' ORDER BY ORDINAL_POSITION"
-    # results = db.execute(my_query).fetchall()
-    # results_ri = results[141:157] # edit if added more defense systems to the DB in the future
-    result_str = []
-    id = 0
-    for r in ds_names:
-        d = {}
-        # regex = re.compile('[^a-zA-Z]')
-        # # First parameter is the replacement, second parameter is your input string
-        # r = regex.sub('', str(r))
-        # # Out: 'abdE'
-        d['name'] = r
-        d['key'] = id
-        id += 1
-        result_str.append(d)
-
-    return result_str
-
-
 # prepares the "where" query, gets the selected options from the user and adds it to the field we what to filter by
 #
 # example: selectedAS = ['PAO1', 'PA14'] , ret = 'assembly_x' will return:
@@ -361,7 +318,7 @@ def selectedAS_to_query_contains_str(selectedAS):
 def get_genes_by_defense(db: Session, selectedC, selectedAS):
     # if the user didn't select any defense system, return all:
     if not selectedAS:
-        ds_names = get_defense_system_names()
+        ds_names = get_defense_systems_names(db)
         selectedAS = [x['name'] for x in ds_names]
 
     # make a list of tuples to be imported to a dataframe later
@@ -575,7 +532,7 @@ def get_defense_systems_names(db: Session, flag=False):
     :return: dataframe that contains the relevant information or set of the names
     """
     query = db.query(models.GenesDefenseSystems) \
-        .with_entities(models.DefenseSystems.Name).all()
+        .with_entities(models.DefenseSystems.name).all()
     df = pd.DataFrame.from_records(query, columns=['defense_systems'])
     if flag:
         lst = df['defense_systems']
@@ -664,8 +621,9 @@ def get_colors_dict(db: Session):
     :param db: the connection to the database
     :return: dictionary of colors
     """
-    # result = db.query(models.Colors).with_entities(models.Colors.value, models.Colors.label,models.Colors.color).all()
-    # df_from_records = pd.DataFrame.from_records(result, columns=['value', 'label', 'color'])
-    # print(df_from_records)
-    # dict = df_from_records.to_dict(orient='records')
-    return {}#dict
+    result = db.query(models.DefenseSystems).with_entities(models.DefenseSystems.name, models.DefenseSystems.label,
+                                                   models.DefenseSystems.color).all()
+    df_from_records = pd.DataFrame.from_records(result, columns=['value', 'label', 'color'])
+    print(df_from_records)
+    dict = df_from_records.to_dict(orient='records')
+    return dict
