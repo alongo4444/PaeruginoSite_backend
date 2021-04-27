@@ -87,7 +87,7 @@ def get_table_names(db: Session):
     print(results)
 '''
 
-
+'''
 def selectedAS_to_query(selectedAS, ss):
     """
     prepares the "where" query, gets the selected options from the user and adds it to the field we what to filter by
@@ -104,7 +104,7 @@ def selectedAS_to_query(selectedAS, ss):
         else:
             ret = ret + " OR {}='{}'".format(ss, s)
     return ret
-
+'''
 
 def get_genes_download(db: Session, selectedC, selectedAS):
     selectedC.insert(0, 'locus_tag')
@@ -264,8 +264,9 @@ this function used to get all the genes of a certain assembly of a strain
 
 
 def get_gene_by_strain(db: Session, strain_id):
-    my_query = "SELECT locus_tag FROM \"Genes\" WHERE assembly = '{}'".format(strain_id)
-    results = db.execute(my_query).fetchall()
+    results = db.query(models.Genes.locus_tag).filter(models.Genes.assembly == strain_id).all()
+    # my_query = "SELECT locus_tag FROM \"Genes\" WHERE assembly = '{}'".format(strain_id)
+    # results = db.execute(my_query).fetchall()
     return results
 
 
