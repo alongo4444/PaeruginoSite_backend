@@ -210,11 +210,12 @@ def get_strains_cluster(db: Session, strains_genes):
     list_strains = []
     for s_g in strains_genes:
         split = s_g.split('-')
-        my_query = db.query(models.Clusters).\
+        search = "%{}%".format(split[1])
+        results = db.query(models.Clusters).\
             with_entities(models.Clusters.index, models.Clusters.combined_index).\
-            filter(getattr(models.Genes, split[0].lower()).like(split[1])).all()
+            filter(getattr(models.Clusters, split[0].lower()).like(search)).all()
         # my_query = "SELECT index,combined_index FROM \"Cluster\" WHERE {} LIKE '%{}%'".format(split[0], split[1])
-        results = db.execute(my_query).fetchall()
+        # results = db.execute(my_query).fetchall()
         if (len(results) > 0):
             list_strains.append(results[0])
     return list_strains
