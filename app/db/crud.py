@@ -444,8 +444,9 @@ def value_loc(value, df):
 
 
 def get_genes_by_cluster(db: Session, genes):
-    my_query = "SELECT * FROM \"Cluster\""
-    results = db.execute(my_query)
+    results = db.query(models.Clusters).all()
+    # my_query = "SELECT * FROM \"Cluster\""
+    # results = db.execute(my_query)
     col_names = results.keys()
     results = results.fetchall()
     df_from_records = pd.DataFrame.from_records(results, columns=col_names)
@@ -492,9 +493,11 @@ def get_genes_by_cluster(db: Session, genes):
 
         col_names = ['locus_tag', 'genomic_accession', 'start_g', 'end_g', 'strand', 'attributes_x',
                      'product_accession', 'nonredundant_refseq', 'name', 'protein_sequence', 'dna_sequence']
-        cols = ', '.join(col_names)
-        my_query = "SELECT {} FROM \"Genes\"".format(cols)
-        results = db.execute(my_query).fetchall()
+        cols_attr = (getattr(models.Genes, item) for item in col_names)
+        results = db.query(models.Genes).with_entities(*cols_attr).all()
+        # cols = ', '.join(col_names)
+        # my_query = "SELECT {} FROM \"Genes\"".format(cols)
+        # results = db.execute(my_query).fetchall()
         df_from_records_all_genes = pd.DataFrame(results, columns=col_names)
         res = df_from_records_g.merge(df_from_records_all_genes)
 
