@@ -391,8 +391,10 @@ def get_genes_by_defense(db: Session, selectedC, selectedAS):
     selectedC.insert(0, 'locus_tag')
     selectedC_copy.insert(0, "locus_tag")
     cols = ', '.join(selectedC_copy)
-    my_query = "SELECT {} FROM \"Genes\"".format(cols)  # Get all genes
-    results = db.execute(my_query).fetchall()
+    cols_attr = [getattr(models.Genes, item) for item in selectedC_copy]
+    results = db.query(models.Genes).with_entities(*cols_attr).all()
+    # my_query = "SELECT {} FROM \"Genes\"".format(cols)  # Get all genes
+    # results = db.execute(my_query).fetchall()
     df_genes_info = pd.DataFrame(results, columns=selectedC)
     result = df_genes_ds.merge(df_genes_info)
 
