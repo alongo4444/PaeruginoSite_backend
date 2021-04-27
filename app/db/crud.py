@@ -444,11 +444,14 @@ def value_loc(value, df):
 
 
 def get_genes_by_cluster(db: Session, genes):
-    results = db.query(models.Clusters).all()
+    results = db.query(models.Clusters).with_entities(models.Clusters.index,
+                                                      models.Clusters.pa14,
+                                                      models.Clusters.pao1,
+                                                      models.Clusters.combined_index
+                                                      ).all()
     # my_query = "SELECT * FROM \"Cluster\""
     # results = db.execute(my_query)
-    col_names = results.keys()
-    results = results.fetchall()
+    col_names = ['index','pa14','pao1','combined_index']
     df_from_records = pd.DataFrame.from_records(results, columns=col_names)
     first_column = df_from_records.columns[0]
     last_column = df_from_records.columns[-1]
@@ -491,7 +494,7 @@ def get_genes_by_cluster(db: Session, genes):
         df_from_records_g = pd.DataFrame.from_records(genes_cluster,
                                                       columns=['locus_tag', 'strain_name', 'cluster_index'])
 
-        col_names = ['locus_tag', 'genomic_accession', 'start_g', 'end_g', 'strand', 'attributes_x',
+        col_names = ['locus_tag', 'genomic_accession', 'start', 'end', 'strand', 'attributes_x',
                      'product_accession', 'nonredundant_refseq', 'name', 'protein_sequence', 'dna_sequence']
         cols_attr = (getattr(models.Genes, item) for item in col_names)
         results = db.query(models.Genes).with_entities(*cols_attr).all()
@@ -524,7 +527,7 @@ def remove_old_locus_string(s):
 def prepare_fasta_file(df, prot):
     final_txt = ""
     for index, row in df.iterrows():
-        locus_tag, start_g, end_g, name, g_accession, cluster_index,product_accession  = row['locus_tag'], row['start_g'], row['end_g'], row['name'], row['genomic_accession'], row['cluster_index'], row['product_accession']
+        locus_tag, start_g, end_g, name, g_accession, cluster_index,product_accession  = row['locus_tag'], row['start'], row['end'], row['name'], row['genomic_accession'], row['cluster_index'], row['product_accession']
         seq = row['protein_sequence'] if prot else row['dna_sequence']
         every = 120
         seq = '\n'.join(seq[i:i+every] for i in range(0, len(seq), every))
