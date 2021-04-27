@@ -344,6 +344,7 @@ def get_defense_system_names():
 #
 # example: selectedAS = ['PAO1', 'PA14'] , ret = 'assembly_x' will return:
 #   assembly_x='PAO1' OR assembly_x='PA14'
+'''
 def selectedAS_to_query_contains_str(selectedAS):
     ss = "defense_system LIKE "
     if not selectedAS:
@@ -354,7 +355,7 @@ def selectedAS_to_query_contains_str(selectedAS):
         else:
             ret = ret + " OR " + ss + "'%{}%'".format(s)
     return ret
-
+'''
 
 # returns a dataframe with the genes information of the system defenses in selectedAS with the columns in selectedC.
 def get_genes_by_defense(db: Session, selectedC, selectedAS):
@@ -366,7 +367,11 @@ def get_genes_by_defense(db: Session, selectedC, selectedAS):
     # make a list of tuples to be imported to a dataframe later
     genes_ds = []
     for s in selectedAS:
-        my_query = "SELECT full_locus FROM \"Genes_Defence_Systems\" WHERE defense_system LIKE '%{}%'".format(s)
+        search = "%{}%".format(s)
+        my_query = db.query(models.GenesDefenseSystems).\
+            with_entities(models.GenesDefenseSystems.locus_tag).\
+            filter(models.GenesDefenseSystems.defense_system.like(search)).all()
+        # my_query = "SELECT full_locus FROM \"Genes_Defence_Systems\" WHERE defense_system LIKE '%{}%'".format(s)
         results = db.execute(my_query).fetchall()
 
         for r in results:
