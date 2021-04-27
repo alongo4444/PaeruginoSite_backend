@@ -368,11 +368,11 @@ def get_genes_by_defense(db: Session, selectedC, selectedAS):
     genes_ds = []
     for s in selectedAS:
         search = "%{}%".format(s)
-        my_query = db.query(models.GenesDefenseSystems).\
+        results = db.query(models.GenesDefenseSystems).\
             with_entities(models.GenesDefenseSystems.locus_tag).\
             filter(models.GenesDefenseSystems.defense_system.like(search)).all()
         # my_query = "SELECT full_locus FROM \"Genes_Defence_Systems\" WHERE defense_system LIKE '%{}%'".format(s)
-        results = db.execute(my_query).fetchall()
+        # results = db.execute(my_query).fetchall()
 
         for r in results:
             for t in r:
