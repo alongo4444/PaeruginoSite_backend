@@ -6,7 +6,7 @@ from app.db.session import get_db
 from app.static.def_Sys.colors import dict_color
 from app.db.crud import (
     get_strain_isolation_mlst, get_strains_names, get_defense_systems_of_genes, get_strains_index,
-    get_defense_systems_names
+    get_defense_systems_names, get_colors_dict
 )
 import numpy as np
 from pathlib import Path
@@ -76,25 +76,35 @@ def get_resolution(x):
 
 def load_colors():
     """
-    this function reads the colors json from static/def_sys/color.json and save it in dictionary
+    this function reads the colors from the DB and save it in dictionary
     for layer coloring
     """
     # Opening JSON file colors.json
+    db = next(get_db())
     colors_dict = dict()
-    #with open(os.path.abspath("static\def_Sys\colors.json"), 'r') as f:
-    li = dict_color() #json.load(f)
-    colors = [x['color'] for x in li]
+    li = get_colors_dict(db)  # json.load(f)
+    colors_d = [x['color'] for x in li]
     names = [x['label'] for x in li]
-    for (x, col) in zip(names, colors):
+    for (x, col) in zip(names, colors_d):
         colors_dict[x.upper()] = col  # save systems (key) and color(value) in dictionary and return it
 
     return colors_dict
 
 
-sortObj = pysort.Sorting()  # sorting object
-colors = load_colors()  # load colors to dictionary
-def_sys = ['SHEDU', 'RM', 'PAGOS', 'SEPTU', 'THOERIS', 'WADJET', 'ZORYA', 'ABI', 'BREX', 'CRISPR', 'DISARM', 'DND',
-           'DRUANTIA', 'GABIJA', 'HACHIMAN', 'KIWA', 'LAMASSU']
+def load_def_systems_names():
+    """
+    this function reads the defense systems names from the DB and save it in dictionary
+    for layer coloring
+    """
+    db = next(get_db())
+    defense_names = get_defense_systems_names(db, True)
+    return list(defense_names)
+
+# sorting object
+sortObj = pysort.Sorting()
+# load colors to dictionary
+colors = load_colors()
+def_sys = load_def_systems_names()
 
 
 @r.get(
@@ -135,7 +145,6 @@ async def phylogenetic_tree(
         MLST: bool = False,
         db=Depends(get_db)
 ):
-
     """
     this function handles all requests to generate Phylogenetic tree from browse page in the website.
     the function gets 2 arrays: one for the defense systems and needs to be shows and another to
@@ -323,3 +332,13 @@ async def get_genes_def_systems(strain_name, response: Response, db=Depends(get_
     if df == 'No Results':
         return Response(content="No Results", status_code=400)
     return df
+
+
+@r.get(
+    "/defSystemsColors",
+    response_model_exclude_none=True,
+    status_code=200,
+)
+async def get_defense_systems_colors(response: Response, db=Depends(get_db)):
+    defense_colors = get_colors_dict(db)
+    return defense_colors

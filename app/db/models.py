@@ -32,6 +32,7 @@ class Genes(Base):
     symbol = Column("symbol", Text)
     dna_sequence = Column("dna_sequence", Text)
     protein_sequence = Column("protein_sequence", Text)
+    nonredundant_refseq = Column("nonredundant_refseq", Text)
 
 
 class Strains(Base):
@@ -81,6 +82,12 @@ class StrainsDefenseSystems(Base):
     wadjet = Column("wadjet", Integer)
     zorya = Column("zorya", Integer)
 
+
+class Colors(Base):
+    __tablename__ = "Colors"
+    value = Column("value", Text, primary_key=True, index=True, nullable=False)
+    label = Column("label", Text, nullable=False)
+    color = Column("color", Text, nullable=False)
 
 # class that is used for the 4.5 requirement
 class DefenseSystems(Base):

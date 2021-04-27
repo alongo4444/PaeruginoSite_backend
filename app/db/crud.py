@@ -80,18 +80,22 @@ def edit_user(
     db.refresh(db_user)
     return db_user
 
-
+'''
 def get_table_names(db: Session):
     my_query = "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'"
     results = db.execute(my_query).fetchall()
     print(results)
+'''
 
 
-# prepares the "where" query, gets the selected options from the user and adds it to the field we what to filter by
-#
-# example: selectedAS = ['PAO1', 'PA14'] , ret = 'assembly_x' will return:
-#   assembly_x='PAO1' OR assembly_x='PA14'
 def selectedAS_to_query(selectedAS, ss):
+    """
+    prepares the "where" query, gets the selected options from the user and adds it to the field we what to filter by
+    example: selectedAS = ['PAO1', 'PA14'] , ret = 'assembly_x' will return:
+    assembly_x='PAO1' OR assembly_x='PA14'
+    :param selectedAS: the chosen strains from the frontend
+    :param ss:
+    """
     if not selectedAS:
         return "1=1"  # if the user didn't select a strain, return all strains
     for idx, s in enumerate(selectedAS):
@@ -104,13 +108,16 @@ def selectedAS_to_query(selectedAS, ss):
 
 def get_genes_download(db: Session, selectedC, selectedAS):
     selectedC.insert(0, 'locus_tag')
-    cols = ','.join(selectedC)
-
-    rows_q = selectedAS_to_query(selectedAS, 'assembly')
-
+    # cols = ','.join(selectedC)
+    cols_attr = [getattr(models.Genes, col) for col in selectedC]
+    # getattr(models.Clusters, strain.lower())
+    # rows_q = selectedAS_to_query(selectedAS, 'assembly')
+    '''
     my_query = "SELECT {} FROM \"Genes\" WHERE {}".format(cols,
                                                           rows_q)  # Need to change the FROM TABLE to the total genes table eventually
-    results = db.execute(my_query).fetchall()
+    results = db.execute(my_query).fetchall()                                                      
+    '''
+    results = db.query(models.Genes).filter(models.Genes.assembly.in_(selectedAS)).with_entities(*cols_attr).all()
     df_from_records = pd.DataFrame(results, columns=selectedC)
 
     return df_from_records
@@ -640,3 +647,16 @@ def get_strains_MLST(db: Session):
     result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain,models.Strains.mlst_sequence_type).all()
     df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain', 'MLST'])
     return df_from_records
+
+
+def get_colors_dict(db: Session):
+    """
+    the function returns a dictionary of colors
+    :param db: the connection to the database
+    :return: dictionary of colors
+    """
+    result = db.query(models.Colors).with_entities(models.Colors.value, models.Colors.label,models.Colors.color).all()
+    df_from_records = pd.DataFrame.from_records(result, columns=['value', 'label', 'color'])
+    print(df_from_records)
+    dict = df_from_records.to_dict(orient='records')
+    return dict
