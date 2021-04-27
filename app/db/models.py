@@ -83,16 +83,12 @@ class StrainsDefenseSystems(Base):
     zorya = Column("zorya", Integer)
 
 
-class Colors(Base):
-    __tablename__ = "Colors"
-    value = Column("value", Text, primary_key=True, index=True, nullable=False)
-    label = Column("label", Text, nullable=False)
-    color = Column("color", Text, nullable=False)
-
 # class that is used for the 4.5 requirement
 class DefenseSystems(Base):
     __tablename__ = "DefenseSystems"
-    Name = Column("defense_system", Text, primary_key=True, index=True, nullable=False)
+    name = Column("defense_system", Text, primary_key=True, index=True, nullable=False)
+    color = Column("color", Text, nullable=False)
+    label = Column("label", Text, nullable=False)
 
 
 class Clusters(Base):

@@ -533,7 +533,7 @@ def get_defense_systems_names(db: Session, flag=False):
     :return: dataframe that contains the relevant information or set of the names
     """
     query = db.query(models.GenesDefenseSystems) \
-        .with_entities(models.DefenseSystems.Name).all()
+        .with_entities(models.DefenseSystems.name).all()
     df = pd.DataFrame.from_records(query, columns=['defense_systems'])
     if flag:
         lst = df['defense_systems']
@@ -622,7 +622,8 @@ def get_colors_dict(db: Session):
     :param db: the connection to the database
     :return: dictionary of colors
     """
-    result = db.query(models.Colors).with_entities(models.Colors.value, models.Colors.label,models.Colors.color).all()
+    result = db.query(models.DefenseSystems).with_entities(models.DefenseSystems.name, models.DefenseSystems.label,
+                                                   models.DefenseSystems.color).all()
     df_from_records = pd.DataFrame.from_records(result, columns=['value', 'label', 'color'])
     print(df_from_records)
     dict = df_from_records.to_dict(orient='records')
