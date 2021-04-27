@@ -13,7 +13,7 @@ from starlette.responses import FileResponse
 from app.api.api_v1.routers.strains import get_offset, get_font_size, get_spacing, get_resolution
 from app.db.session import get_db
 from app.db.crud import (
-    get_genes, get_strains_cluster, get_strain_id_name, get_strains_MLST, get_defense_system_names, get_gene_by_strain
+    get_genes, get_strains_cluster, get_strain_id_name, get_strains_MLST, get_gene_by_strain
 )
 
 from app.db.schemas import GeneBase
@@ -270,19 +270,3 @@ async def get_gene_strain_id(
         return Response(content="No Results", status_code=400)
 
 
-@r.get(
-    "/get_defense_system_names/",
-    # response_model=t.List[StrainBase],
-    # response_model_exclude_none=True,
-)
-async def strains_list(
-        response: Response,
-        db=Depends(get_db)
-):
-    """Get all strains"""
-    ds = get_defense_system_names(db)
-    # This is necessary for react-admin to work
-    # response.headers["Content-Range"] = f"0-9/{len(users)}"
-    if ds is None:
-        return Response(content="No Results", status_code=400)
-    return ds
