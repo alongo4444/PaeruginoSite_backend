@@ -386,8 +386,8 @@ def get_genes_by_defense(db: Session, selectedC, selectedAS):
 
     selectedC_copy = selectedC.copy()
 
-    for idx, s in enumerate(selectedC_copy):
-        selectedC_copy[idx] = "\"" + s + "\""
+    # for idx, s in enumerate(selectedC_copy):
+    #     selectedC_copy[idx] = "\"" + s + "\""
     selectedC.insert(0, 'locus_tag')
     selectedC_copy.insert(0, "locus_tag")
     cols = ', '.join(selectedC_copy)
