@@ -108,15 +108,7 @@ def selectedAS_to_query(selectedAS, ss):
 
 def get_genes_download(db: Session, selectedC, selectedAS):
     selectedC.insert(0, 'locus_tag')
-    # cols = ','.join(selectedC)
     cols_attr = [getattr(models.Genes, col) for col in selectedC]
-    # getattr(models.Clusters, strain.lower())
-    # rows_q = selectedAS_to_query(selectedAS, 'assembly')
-    '''
-    my_query = "SELECT {} FROM \"Genes\" WHERE {}".format(cols,
-                                                          rows_q)  # Need to change the FROM TABLE to the total genes table eventually
-    results = db.execute(my_query).fetchall()                                                      
-    '''
     results = db.query(models.Genes).filter(models.Genes.assembly.in_(selectedAS)).with_entities(*cols_attr).all()
     df_from_records = pd.DataFrame(results, columns=selectedC)
 
@@ -218,7 +210,10 @@ def get_strains_cluster(db: Session, strains_genes):
     list_strains = []
     for s_g in strains_genes:
         split = s_g.split('-')
-        my_query = "SELECT index,combined_index FROM \"Cluster\" WHERE {} LIKE '%{}%'".format(split[0], split[1])
+        my_query = db.query(models.Clusters).\
+            with_entities(models.Clusters.index, models.Clusters.combined_index).\
+            filter(getattr(models.Genes, split[0].lower()).like(split[1])).all()
+        # my_query = "SELECT index,combined_index FROM \"Cluster\" WHERE {} LIKE '%{}%'".format(split[0], split[1])
         results = db.execute(my_query).fetchall()
         if (len(results) > 0):
             list_strains.append(results[0])
