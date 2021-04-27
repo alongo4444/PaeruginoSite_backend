@@ -145,7 +145,6 @@ async def phylogenetic_tree(
         MLST: bool = False,
         db=Depends(get_db)
 ):
-
     """
     this function handles all requests to generate Phylogenetic tree from browse page in the website.
     the function gets 2 arrays: one for the defense systems and needs to be shows and another to
