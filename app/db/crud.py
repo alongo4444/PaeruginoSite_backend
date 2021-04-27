@@ -108,13 +108,16 @@ def selectedAS_to_query(selectedAS, ss):
 
 def get_genes_download(db: Session, selectedC, selectedAS):
     selectedC.insert(0, 'locus_tag')
-    cols = ','.join(selectedC)
+    # cols = ','.join(selectedC)
+    cols_attr = [getattr(models.Genes, col) for col in selectedC]
     # getattr(models.Clusters, strain.lower())
-    rows_q = selectedAS_to_query(selectedAS, 'assembly')
-
+    # rows_q = selectedAS_to_query(selectedAS, 'assembly')
+    '''
     my_query = "SELECT {} FROM \"Genes\" WHERE {}".format(cols,
                                                           rows_q)  # Need to change the FROM TABLE to the total genes table eventually
-    results = db.execute(my_query).fetchall()
+    results = db.execute(my_query).fetchall()                                                      
+    '''
+    results = db.query(models.Genes).filter(models.Genes.assembly.in_(selectedAS)).with_entities(*cols_attr).all()
     df_from_records = pd.DataFrame(results, columns=selectedC)
 
     return df_from_records
