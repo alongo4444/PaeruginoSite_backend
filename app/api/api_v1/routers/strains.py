@@ -341,4 +341,6 @@ async def get_genes_def_systems(strain_name, response: Response, db=Depends(get_
 )
 async def get_defense_systems_colors(response: Response, db=Depends(get_db)):
     defense_colors = get_colors_dict(db)
+    if defense_colors == "No Results":
+        return Response(content="No Results", status_code=400)
     return defense_colors
