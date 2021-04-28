@@ -87,7 +87,6 @@ def load_colors():
     names = [x['label'] for x in li]
     for (x, col) in zip(names, colors_d):
         colors_dict[x.upper()] = col  # save systems (key) and color(value) in dictionary and return it
-
     return colors_dict
 
 
@@ -341,4 +340,6 @@ async def get_genes_def_systems(strain_name, response: Response, db=Depends(get_
 )
 async def get_defense_systems_colors(response: Response, db=Depends(get_db)):
     defense_colors = get_colors_dict(db)
+    if defense_colors == "No Results":
+        return Response(content="No Results", status_code=400)
     return defense_colors
