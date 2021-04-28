@@ -479,30 +479,6 @@ def remove_old_locus_string(s):
         return s.replace('old_locus_tag=', '')
     return s
 
-# prepares a fasta file. returns as a text file to the user. the front end needs to translate it into a .faa file.
-def prepare_fasta_file(df, prot):
-    final_txt = ""
-    for index, row in df.iterrows():
-        locus_tag, start_g, end_g, name, g_accession, cluster_index,product_accession  = row['locus_tag'], row['start'], row['end'], row['name'], row['genomic_accession'], row['cluster_index'], row['product_accession']
-        seq = row['protein_sequence'] if prot else row['dna_sequence']
-        every = 120
-        seq = '\n'.join(seq[i:i+every] for i in range(0, len(seq), every))
-        type = 'prot' if prot else 'dna'
-        newentry = ">{}_{} [locus_tag = {}] [location = {}..{}] [name = {}] [cluster_index = {}] [product_accession = {}] \n{}\n".format(g_accession,type,locus_tag,start_g,end_g,name,cluster_index,product_accession,seq)
-        final_txt += newentry
-
-    output = io.StringIO()
-    output.write(final_txt)
-
-    # Returns a csv prepared to be downloaded in the FrontEnd
-    response = StreamingResponse(iter([output.getvalue()]),
-                                 media_type="text/plain"
-                                 )
-
-    response.headers["Content-Disposition"] = "attachment; filename=export.txt"
-
-    return response
-
 
 # for requirement 4.5
 def get_defense_systems_of_two_strains(db: Session, first_strain_name, second_strain_name):
