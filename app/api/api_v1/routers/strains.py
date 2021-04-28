@@ -87,7 +87,6 @@ def load_colors():
     names = [x['label'] for x in li]
     for (x, col) in zip(names, colors_d):
         colors_dict[x.upper()] = col  # save systems (key) and color(value) in dictionary and return it
-
     return colors_dict
 
 
