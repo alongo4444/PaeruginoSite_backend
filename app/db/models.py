@@ -81,6 +81,9 @@ class StrainsDefenseSystems(Base):
     thoeris = Column("thoeris", Integer)
     wadjet = Column("wadjet", Integer)
     zorya = Column("zorya", Integer)
+    ta = Column("ta", Integer)
+    disarmassociated = Column("disarmassociated", Integer)
+
 
 
 # class that is used for the 4.5 requirement

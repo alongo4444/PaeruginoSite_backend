@@ -26,6 +26,9 @@ async def get_correlation_between_defense_systems(response: Response,
     names_of_def_systems = get_defense_systems_names(db, True)
     if len(systems) != 2:
         return Response(content="Wrong number of parameters", status_code=400)
+    checks_dups = set(systems)
+    if len(checks_dups) < 2:
+        return Response(content="Same Defense System", status_code=400)
     for item in systems:
         if item not in names_of_def_systems:
             return Response(content="Defense system doesn't exist", status_code=400)
