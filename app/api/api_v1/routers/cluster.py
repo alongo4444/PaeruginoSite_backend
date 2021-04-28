@@ -13,7 +13,7 @@ from starlette.responses import FileResponse
 from app.api.api_v1.routers.strains import get_offset, get_font_size, get_spacing, get_resolution
 from app.db.session import get_db
 from app.db.crud import (
-    get_genes, get_strains_cluster, get_strain_id_name, get_strains_MLST, get_defense_system_names, get_gene_by_strain
+    get_genes, get_strains_cluster, get_strain_id_name, get_strains_MLST, get_gene_by_strain
 )
 
 from app.db.schemas import GeneBase
@@ -216,29 +216,28 @@ async def cluster_tree(
     raise HTTPException(status_code=404, detail="e")
 
 
-@r.get(
-    "/get_gene_strain/{strain_name}",
-    response_model_exclude_none=True,
-    status_code=200,
-)
-async def get_gene_strain(
-        strain_name,
-        response: Response,
-        db=Depends(get_db)
-):
-    try:
-        gene = get_genes(db)  # need to add strains name to the function
-        list_genes = [d.get('locus_tag_copy') for d in gene]
-        return list_genes
-    except Exception as e:
-        return Response(content="No Results", status_code=400)
+# TODO Ido put this on # to check if this function being used
+# @r.get(
+#     "/get_gene_strain/{strain_name}",
+#     response_model_exclude_none=True,
+#     status_code=200,
+# )
+# async def get_gene_strain(
+#         strain_name,
+#         response: Response,
+#         db=Depends(get_db)
+# ):
+#     try:
+#         gene = get_genes(db)  # need to add strains name to the function
+#         list_genes = [d.get('locus_tag_copy') for d in gene]
+#         return list_genes
+#     except Exception as e:
+#         return Response(content="No Results", status_code=400)
 
 
 '''
 this function used to get all the genes of a certain assembly of a strain  
 '''
-
-
 @r.get(
     "/get_gene_strain_id/{strain_id}",
     response_model_exclude_none=True,
@@ -255,8 +254,8 @@ async def get_gene_strain_id(
         if (len(gene) > 0):
             list_genes = []
             for row in gene:
-                d = dict(row.items())
-                list_genes.append(d['locus_tag'])
+                # d = dict(row.items())
+                list_genes.append(row)
             df = pd.DataFrame(list_genes, columns=['name'])
             result = df.to_json(orient="records")
             parsed = json.loads(result)
@@ -264,25 +263,10 @@ async def get_gene_strain_id(
             return parsed
         else:
             status_code = 400
-            return json.dumps({'name': "No Results"}, indent=4)
+            #return json.loads({'name': "No Results"})
+            return Response(content="No Results", status_code=400)
     except Exception as e:
         print(e)
         return Response(content="No Results", status_code=400)
 
 
-@r.get(
-    "/get_defense_system_names/",
-    # response_model=t.List[StrainBase],
-    # response_model_exclude_none=True,
-)
-async def strains_list(
-        response: Response,
-        db=Depends(get_db)
-):
-    """Get all strains"""
-    ds = get_defense_system_names()
-    # This is necessary for react-admin to work
-    # response.headers["Content-Range"] = f"0-9/{len(users)}"
-    if ds is None:
-        return Response(content="No Results", status_code=400)
-    return ds

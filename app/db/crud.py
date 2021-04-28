@@ -1,7 +1,6 @@
 import io
 import zipfile
 import csv
-
 from bs4 import BeautifulSoup
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, class_mapper, defer
@@ -80,18 +79,22 @@ def edit_user(
     db.refresh(db_user)
     return db_user
 
-
+'''
 def get_table_names(db: Session):
     my_query = "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'"
     results = db.execute(my_query).fetchall()
     print(results)
+'''
 
-
-# prepares the "where" query, gets the selected options from the user and adds it to the field we what to filter by
-#
-# example: selectedAS = ['PAO1', 'PA14'] , ret = 'assembly_x' will return:
-#   assembly_x='PAO1' OR assembly_x='PA14'
+'''
 def selectedAS_to_query(selectedAS, ss):
+    """
+    prepares the "where" query, gets the selected options from the user and adds it to the field we what to filter by
+    example: selectedAS = ['PAO1', 'PA14'] , ret = 'assembly_x' will return:
+    assembly_x='PAO1' OR assembly_x='PA14'
+    :param selectedAS: the chosen strains from the frontend
+    :param ss:
+    """
     if not selectedAS:
         return "1=1"  # if the user didn't select a strain, return all strains
     for idx, s in enumerate(selectedAS):
@@ -100,17 +103,12 @@ def selectedAS_to_query(selectedAS, ss):
         else:
             ret = ret + " OR {}='{}'".format(ss, s)
     return ret
-
+'''
 
 def get_genes_download(db: Session, selectedC, selectedAS):
     selectedC.insert(0, 'locus_tag')
-    cols = ','.join(selectedC)
-
-    rows_q = selectedAS_to_query(selectedAS, 'assembly')
-
-    my_query = "SELECT {} FROM \"Genes\" WHERE {}".format(cols,
-                                                          rows_q)  # Need to change the FROM TABLE to the total genes table eventually
-    results = db.execute(my_query).fetchall()
+    cols_attr = [getattr(models.Genes, col) for col in selectedC]
+    results = db.query(models.Genes).filter(models.Genes.assembly.in_(selectedAS)).with_entities(*cols_attr).all()
     df_from_records = pd.DataFrame(results, columns=selectedC)
 
     return df_from_records
@@ -211,8 +209,12 @@ def get_strains_cluster(db: Session, strains_genes):
     list_strains = []
     for s_g in strains_genes:
         split = s_g.split('-')
-        my_query = "SELECT index,combined_index FROM \"Cluster\" WHERE {} LIKE '%{}%'".format(split[0], split[1])
-        results = db.execute(my_query).fetchall()
+        search = "%{}%".format(split[1])
+        results = db.query(models.Clusters).\
+            with_entities(models.Clusters.index, models.Clusters.combined_index).\
+            filter(getattr(models.Clusters, split[0].lower()).like(search)).all()
+        # my_query = "SELECT index,combined_index FROM \"Cluster\" WHERE {} LIKE '%{}%'".format(split[0], split[1])
+        # results = db.execute(my_query).fetchall()
         if (len(results) > 0):
             list_strains.append(results[0])
     return list_strains
@@ -261,8 +263,9 @@ this function used to get all the genes of a certain assembly of a strain
 
 
 def get_gene_by_strain(db: Session, strain_id):
-    my_query = "SELECT locus_tag FROM \"Genes\" WHERE assembly = '{}'".format(strain_id)
-    results = db.execute(my_query).fetchall()
+    results = db.query(models.Genes.locus_tag).filter(models.Genes.assembly == strain_id).all()
+    # my_query = "SELECT locus_tag FROM \"Genes\" WHERE assembly = '{}'".format(strain_id)
+    # results = db.execute(my_query).fetchall()
     return results
 
 
@@ -294,53 +297,11 @@ def parse_circos_html(html_file):
 
     return res_dict
 
-
-# returns all the names of the defense systems
-def get_defense_system_names():
-    # try:
-    #     headers = pd.read_csv('static/def_Sys/Defense_sys.csv', index_col=0, nrows=0).columns.tolist()
-    #     ds_names = headers[2:]
-    #     for idx,h in enumerate(ds_names):
-    #         ds_names[idx] = h.replace('Defense_sys_','')
-    # except:
-    #     print("static/def_Sys/Defense_sys.csv was not found.")
-    #     return None
-
-    try:
-        cols = pd.read_csv('static/def_Sys/Defense_Systems_Names.csv')
-
-        print('s')
-    except:
-        print("static/def_Sys/Defense_sys.csv was not found.")
-        return None
-    ds_names = cols['Name'].apply(lambda x: x.split('|')[0])
-    ds_names = ds_names.unique()
-    ds_names = list(filter(lambda x: 'Anti-CRISPR' not in x, ds_names))
-    # ds_names = ['CRISPER-CAS' if x=='CRISPERCAS' else x for x in ds_names]
-    ds_names = sorted(ds_names)
-    # my_query = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Cluster' ORDER BY ORDINAL_POSITION"
-    # results = db.execute(my_query).fetchall()
-    # results_ri = results[141:157] # edit if added more defense systems to the DB in the future
-    result_str = []
-    id = 0
-    for r in ds_names:
-        d = {}
-        # regex = re.compile('[^a-zA-Z]')
-        # # First parameter is the replacement, second parameter is your input string
-        # r = regex.sub('', str(r))
-        # # Out: 'abdE'
-        d['name'] = r
-        d['key'] = id
-        id += 1
-        result_str.append(d)
-
-    return result_str
-
-
 # prepares the "where" query, gets the selected options from the user and adds it to the field we what to filter by
 #
 # example: selectedAS = ['PAO1', 'PA14'] , ret = 'assembly_x' will return:
 #   assembly_x='PAO1' OR assembly_x='PA14'
+'''
 def selectedAS_to_query_contains_str(selectedAS):
     ss = "defense_system LIKE "
     if not selectedAS:
@@ -351,20 +312,24 @@ def selectedAS_to_query_contains_str(selectedAS):
         else:
             ret = ret + " OR " + ss + "'%{}%'".format(s)
     return ret
-
+'''
 
 # returns a dataframe with the genes information of the system defenses in selectedAS with the columns in selectedC.
 def get_genes_by_defense(db: Session, selectedC, selectedAS):
     # if the user didn't select any defense system, return all:
     if not selectedAS:
-        ds_names = get_defense_system_names()
+        ds_names = get_defense_systems_names(db)
         selectedAS = [x['name'] for x in ds_names]
 
     # make a list of tuples to be imported to a dataframe later
     genes_ds = []
     for s in selectedAS:
-        my_query = "SELECT full_locus FROM \"Genes_Defence_Systems\" WHERE defense_system LIKE '%{}%'".format(s)
-        results = db.execute(my_query).fetchall()
+        search = "%{}%".format(s)
+        results = db.query(models.GenesDefenseSystems).\
+            with_entities(models.GenesDefenseSystems.locus_tag).\
+            filter(models.GenesDefenseSystems.defense_system.like(search)).all()
+        # my_query = "SELECT full_locus FROM \"Genes_Defence_Systems\" WHERE defense_system LIKE '%{}%'".format(s)
+        # results = db.execute(my_query).fetchall()
 
         for r in results:
             for t in r:
@@ -377,13 +342,15 @@ def get_genes_by_defense(db: Session, selectedC, selectedAS):
 
     selectedC_copy = selectedC.copy()
 
-    for idx, s in enumerate(selectedC_copy):
-        selectedC_copy[idx] = "\"" + s + "\""
+    # for idx, s in enumerate(selectedC_copy):
+    #     selectedC_copy[idx] = "\"" + s + "\""
     selectedC.insert(0, 'locus_tag')
     selectedC_copy.insert(0, "locus_tag")
     cols = ', '.join(selectedC_copy)
-    my_query = "SELECT {} FROM \"Genes\"".format(cols)  # Get all genes
-    results = db.execute(my_query).fetchall()
+    cols_attr = [getattr(models.Genes, item) for item in selectedC_copy]
+    results = db.query(models.Genes).with_entities(*cols_attr).all()
+    # my_query = "SELECT {} FROM \"Genes\"".format(cols)  # Get all genes
+    # results = db.execute(my_query).fetchall()
     df_genes_info = pd.DataFrame(results, columns=selectedC)
     result = df_genes_ds.merge(df_genes_info)
 
@@ -433,10 +400,14 @@ def value_loc(value, df):
 
 
 def get_genes_by_cluster(db: Session, genes):
-    my_query = "SELECT * FROM \"Cluster\""
-    results = db.execute(my_query)
-    col_names = results.keys()
-    results = results.fetchall()
+    results = db.query(models.Clusters).with_entities(models.Clusters.index,
+                                                      models.Clusters.pa14,
+                                                      models.Clusters.pao1,
+                                                      models.Clusters.combined_index
+                                                      ).all()
+    # my_query = "SELECT * FROM \"Cluster\""
+    # results = db.execute(my_query)
+    col_names = ['index','pa14','pao1','combined_index']
     df_from_records = pd.DataFrame.from_records(results, columns=col_names)
     first_column = df_from_records.columns[0]
     last_column = df_from_records.columns[-1]
@@ -479,11 +450,13 @@ def get_genes_by_cluster(db: Session, genes):
         df_from_records_g = pd.DataFrame.from_records(genes_cluster,
                                                       columns=['locus_tag', 'strain_name', 'cluster_index'])
 
-        col_names = ['locus_tag', 'genomic_accession', 'start_g', 'end_g', 'strand', 'attributes_x',
+        col_names = ['locus_tag', 'genomic_accession', 'start', 'end', 'strand', 'attributes_x',
                      'product_accession', 'nonredundant_refseq', 'name', 'protein_sequence', 'dna_sequence']
-        cols = ', '.join(col_names)
-        my_query = "SELECT {} FROM \"Genes\"".format(cols)
-        results = db.execute(my_query).fetchall()
+        cols_attr = (getattr(models.Genes, item) for item in col_names)
+        results = db.query(models.Genes).with_entities(*cols_attr).all()
+        # cols = ', '.join(col_names)
+        # my_query = "SELECT {} FROM \"Genes\"".format(cols)
+        # results = db.execute(my_query).fetchall()
         df_from_records_all_genes = pd.DataFrame(results, columns=col_names)
         res = df_from_records_g.merge(df_from_records_all_genes)
 
@@ -505,30 +478,6 @@ def remove_old_locus_string(s):
     if s:
         return s.replace('old_locus_tag=', '')
     return s
-
-# prepares a fasta file. returns as a text file to the user. the front end needs to translate it into a .faa file.
-def prepare_fasta_file(df, prot):
-    final_txt = ""
-    for index, row in df.iterrows():
-        locus_tag, start_g, end_g, name, g_accession, cluster_index,product_accession  = row['locus_tag'], row['start_g'], row['end_g'], row['name'], row['genomic_accession'], row['cluster_index'], row['product_accession']
-        seq = row['protein_sequence'] if prot else row['dna_sequence']
-        every = 120
-        seq = '\n'.join(seq[i:i+every] for i in range(0, len(seq), every))
-        type = 'prot' if prot else 'dna'
-        newentry = ">{}_{} [locus_tag = {}] [location = {}..{}] [name = {}] [cluster_index = {}] [product_accession = {}] \n{}\n".format(g_accession,type,locus_tag,start_g,end_g,name,cluster_index,product_accession,seq)
-        final_txt += newentry
-
-    output = io.StringIO()
-    output.write(final_txt)
-
-    # Returns a csv prepared to be downloaded in the FrontEnd
-    response = StreamingResponse(iter([output.getvalue()]),
-                                 media_type="text/plain"
-                                 )
-
-    response.headers["Content-Disposition"] = "attachment; filename=export.txt"
-
-    return response
 
 
 # for requirement 4.5
@@ -559,7 +508,7 @@ def get_defense_systems_names(db: Session, flag=False):
     :return: dataframe that contains the relevant information or set of the names
     """
     query = db.query(models.GenesDefenseSystems) \
-        .with_entities(models.DefenseSystems.Name).all()
+        .with_entities(models.DefenseSystems.name).all()
     df = pd.DataFrame.from_records(query, columns=['defense_systems'])
     if flag:
         lst = df['defense_systems']
@@ -648,7 +597,8 @@ def get_colors_dict(db: Session):
     :param db: the connection to the database
     :return: dictionary of colors
     """
-    result = db.query(models.Colors).with_entities(models.Colors.value, models.Colors.label,models.Colors.color).all()
+    result = db.query(models.DefenseSystems).with_entities(models.DefenseSystems.name, models.DefenseSystems.label,
+                                                   models.DefenseSystems.color).all()
     df_from_records = pd.DataFrame.from_records(result, columns=['value', 'label', 'color'])
     print(df_from_records)
     dict = df_from_records.to_dict(orient='records')

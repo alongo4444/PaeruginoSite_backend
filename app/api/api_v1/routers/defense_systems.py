@@ -79,7 +79,7 @@ async def distinct_count(
     # check if such query allready computed and return it. else, compute new given query.
     if not os.path.exists('static/distinct_sys/' + filename + ".png"):
         # prepare POPEN variables needed
-        command = 'C:/Program Files/R/R-4.0.3/bin/Rscript.exe'
+        command = 'C:/Program Files/R/R-4.0.4/bin/Rscript.exe'
         # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
         arg = '--vanilla'
         # data preprocessing for the R query
