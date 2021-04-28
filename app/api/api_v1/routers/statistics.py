@@ -26,6 +26,9 @@ async def get_correlation_between_defense_systems(response: Response,
     names_of_def_systems = get_defense_systems_names(db, True)
     if len(systems) != 2:
         return Response(content="Wrong number of parameters", status_code=400)
+    checks_dups = set(systems)
+    if len(checks_dups) < 2:
+        return Response(content="Same Defense System", status_code=400)
     for item in systems:
         if item not in names_of_def_systems:
             return Response(content="Defense system doesn't exist", status_code=400)
@@ -158,7 +161,7 @@ async def get_correlation_between_defense_systems_and_cluster(response: Response
         return Response(content="Strain doesn't exist", status_code=400)
     clusters = dict_of_clusters_related_to_gene(db, strain, gene)
     defense_system = get_all_strains_of_defense_system(db, system)
-    if clusters is 'No Results' or defense_system is "No Results":
+    if clusters is "No Results" or defense_system is "No Results":
         return Response(content="No Results", status_code=400)
     df = dict_of_clusters_related_to_gene(db, strain, gene)
     try:
@@ -197,7 +200,7 @@ async def get_correlation_between_cluster_and_isotype(response: Response,
         return Response(content="Strain doesn't exist", status_code=400)
     clusters = dict_of_clusters_related_to_gene(db, strain, gene)
     attributes = get_strain_column_data(db, 'isolation_type')
-    if clusters is 'No Results' or attributes is "No Results":
+    if clusters is "No Results" or attributes is "No Results":
         return Response(content="No Results", status_code=400)
     try:
         strains_in_cluster = ast.literal_eval(clusters['combined_index'].values[0])
