@@ -152,6 +152,7 @@ def get_genes(db: Session):
     df_from_records['locus_tag'] = df_from_records.index
     return df_from_records.to_dict('records')
 
+
 def get_strains_index(db: Session):
     """
     this function returns from DB a JSON with 2 keys: index of strains and name of strain.
@@ -599,7 +600,8 @@ def get_colors_dict(db: Session):
     """
     result = db.query(models.DefenseSystems).with_entities(models.DefenseSystems.name, models.DefenseSystems.label,
                                                    models.DefenseSystems.color).all()
-    df_from_records = pd.DataFrame.from_records(result, columns=['value', 'label', 'color'])
-    print(df_from_records)
+    df_from_records = pd.DataFrame.from_records(result, columns=['label', 'value', 'color'])
+    if df_from_records.empty:
+        return "No Results"
     dict = df_from_records.to_dict(orient='records')
     return dict
