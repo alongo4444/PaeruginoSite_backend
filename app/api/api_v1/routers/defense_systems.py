@@ -48,7 +48,7 @@ async def get_defense_systems(response: Response, db=Depends(get_db)):
 )
 async def get_triplets(response: Response, db=Depends(get_db)):
     df = get_colors_dict(db)
-    names = [x['name'] for x in df]
+    names = [x['label'] for x in df]
     # A temporary array to store all combination one by one
     triplets = list(itertools.combinations(names, 3))
 
