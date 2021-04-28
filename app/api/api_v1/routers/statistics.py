@@ -161,7 +161,7 @@ async def get_correlation_between_defense_systems_and_cluster(response: Response
         return Response(content="Strain doesn't exist", status_code=400)
     clusters = dict_of_clusters_related_to_gene(db, strain, gene)
     defense_system = get_all_strains_of_defense_system(db, system)
-    if clusters is 'No Results' or defense_system is "No Results":
+    if clusters is "No Results" or defense_system is "No Results":
         return Response(content="No Results", status_code=400)
     df = dict_of_clusters_related_to_gene(db, strain, gene)
     try:
@@ -200,7 +200,7 @@ async def get_correlation_between_cluster_and_isotype(response: Response,
         return Response(content="Strain doesn't exist", status_code=400)
     clusters = dict_of_clusters_related_to_gene(db, strain, gene)
     attributes = get_strain_column_data(db, 'isolation_type')
-    if clusters is 'No Results' or attributes is "No Results":
+    if clusters is "No Results" or attributes is "No Results":
         return Response(content="No Results", status_code=400)
     try:
         strains_in_cluster = ast.literal_eval(clusters['combined_index'].values[0])
