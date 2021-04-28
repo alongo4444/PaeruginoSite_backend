@@ -216,29 +216,28 @@ async def cluster_tree(
     raise HTTPException(status_code=404, detail="e")
 
 
-@r.get(
-    "/get_gene_strain/{strain_name}",
-    response_model_exclude_none=True,
-    status_code=200,
-)
-async def get_gene_strain(
-        strain_name,
-        response: Response,
-        db=Depends(get_db)
-):
-    try:
-        gene = get_genes(db)  # need to add strains name to the function
-        list_genes = [d.get('locus_tag_copy') for d in gene]
-        return list_genes
-    except Exception as e:
-        return Response(content="No Results", status_code=400)
+# TODO Ido put this on # to check if this function being used
+# @r.get(
+#     "/get_gene_strain/{strain_name}",
+#     response_model_exclude_none=True,
+#     status_code=200,
+# )
+# async def get_gene_strain(
+#         strain_name,
+#         response: Response,
+#         db=Depends(get_db)
+# ):
+#     try:
+#         gene = get_genes(db)  # need to add strains name to the function
+#         list_genes = [d.get('locus_tag_copy') for d in gene]
+#         return list_genes
+#     except Exception as e:
+#         return Response(content="No Results", status_code=400)
 
 
 '''
 this function used to get all the genes of a certain assembly of a strain  
 '''
-
-
 @r.get(
     "/get_gene_strain_id/{strain_id}",
     response_model_exclude_none=True,
@@ -264,7 +263,8 @@ async def get_gene_strain_id(
             return parsed
         else:
             status_code = 400
-            return json.dumps({'name': "No Results"}, indent=4)
+            #return json.loads({'name': "No Results"})
+            return Response(content="No Results", status_code=400)
     except Exception as e:
         print(e)
         return Response(content="No Results", status_code=400)
