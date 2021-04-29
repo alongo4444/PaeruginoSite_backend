@@ -1,22 +1,20 @@
 import hashlib
 import json
-import os, subprocess
+import os
+import subprocess
+from pathlib import Path
+from typing import List, Optional
 
 import pandas as pd
-from fastapi import APIRouter, Query, Request, Depends, Response, HTTPException
-from typing import List, Optional
-from pathlib import Path
-
+from fastapi import APIRouter, Query, Depends, Response, HTTPException
 from sorting_techniques import pysort
 from starlette.responses import FileResponse
 
 from app.api.api_v1.routers.strains import get_offset, get_font_size, get_spacing, get_resolution
-from app.db.session import get_db
 from app.db.crud import (
-    get_genes, get_strains_cluster, get_strain_id_name, get_strains_MLST, get_gene_by_strain
+    get_strains_cluster, get_strain_id_name, get_strains_MLST, get_gene_by_strain
 )
-
-from app.db.schemas import GeneBase
+from app.db.session import get_db
 
 cluster_router = r = APIRouter()
 
@@ -31,7 +29,7 @@ sortObj = pysort.Sorting()
 )
 async def cluster_tree(
         response: Response,
-        list_strain_gene: List[str] = Query(None),
+        list_strain_gene: List[str] = Query([]),
         subtree: Optional[List[int]] = Query([]),
         MLST: bool = False,
         db=Depends(get_db)
@@ -262,11 +260,25 @@ async def get_gene_strain_id(
             json.dumps(parsed, indent=4)
             return parsed
         else:
-            status_code = 400
-            #return json.loads({'name': "No Results"})
             return Response(content="No Results", status_code=400)
     except Exception as e:
         print(e)
         return Response(content="No Results", status_code=400)
 
 
+# @r.get(
+#     "/get_defense_system_names/",
+#     # response_model=t.List[StrainBase],
+#     # response_model_exclude_none=True,
+# )
+# async def strains_list(
+#         response: Response,
+#         db=Depends(get_db)
+# ):
+#     """Get all strains"""
+#     ds = get_defense_system_names(db)
+#     # This is necessary for react-admin to work
+#     # response.headers["Content-Range"] = f"0-9/{len(users)}"
+#     if ds is None:
+#         return Response(content="No Results", status_code=400)
+#     return ds

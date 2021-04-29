@@ -47,7 +47,7 @@ def test_correlation_between_real_defense_system_and_unreal_false():
 
 def test_correlation_between_two_unreal_defense_system_false():
     """
-    check how the system handles the correlation between twp defense system that doesn't exist
+    check how the system handles the correlation between two defense system that doesn't exist
     """
     response = client.get("api/v1/statistics/correlationBetweenDefenseSystems?systems=test&systems=test1")
     assert response.status_code == 400
