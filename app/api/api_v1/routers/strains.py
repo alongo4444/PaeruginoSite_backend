@@ -336,9 +336,15 @@ async def strain_circos_graph(strain_name, response: Response):
     status_code=200,
 )
 async def get_genes_def_systems(strain_name, response: Response, db=Depends(get_db)):
-    df = get_defense_systems_of_genes(db, strain_name)
-    if df == 'No Results':
-        return Response(content="No Results", status_code=400)
+    if strain_name:
+        try:
+            split = strain_name.split("(")
+            assembly = split[0][:-1]
+            df = get_defense_systems_of_genes(db, assembly)
+            if df == 'No Results':
+                return Response(content="No Results", status_code=400)
+        except Exception:
+            df = get_defense_systems_of_genes(db, "GCF_000404265.1")
     return df
 
 
