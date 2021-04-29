@@ -14,6 +14,15 @@ from scipy.stats import mannwhitneyu
 
 statistics_router = r = APIRouter()
 
+def renameDefColumn(s_name):
+    """
+    renames a string from the frontend to a format which can be read from the back end. Used for functions which uses the defense systems in the StrainsDefenseSystems table.
+    s_name: the string to be reformatted.
+    """
+    res = s_name.replace("-",'')
+    res = res.replace(" ","_")
+    return res.replace("|","_").lower()
+
 
 @r.get(
     "/correlationBetweenDefenseSystems",
@@ -23,6 +32,8 @@ statistics_router = r = APIRouter()
 async def get_correlation_between_defense_systems(response: Response,
                                                   systems: List[str] = Query([]),
                                                   db=Depends(get_db)):
+
+
     names_of_def_systems = get_defense_systems_names(db, True)
     if len(systems) != 2:
         return Response(content="Wrong number of parameters", status_code=400)
@@ -32,8 +43,13 @@ async def get_correlation_between_defense_systems(response: Response,
     for item in systems:
         if item not in names_of_def_systems:
             return Response(content="Defense system doesn't exist", status_code=400)
+
+    systems[0] = renameDefColumn(systems[0])
+    systems[1] = renameDefColumn(systems[1])
+
     df = get_defense_systems_of_two_strains(db, systems[0], systems[1])
     # calculate the distribution
+
     N = len(list(df['index']))
     K_l = df.index[df[systems[0].lower()] == 1].tolist()
     n_l = df.index[df[systems[1].lower()] == 1].tolist()
@@ -63,6 +79,7 @@ async def get_correlation_between_defense_systems_and_attribute(response: Respon
     if system not in names_of_def_systems:
         return Response(content="Defense system doesn't exist", status_code=400)
     attributes = get_strain_column_data(db, category)
+    system = renameDefColumn(system)
     defense_system = get_all_strains_of_defense_system(db, system)
     if defense_system is 'No Results' or attributes is "No Results":
         return Response(content="No Results", status_code=400)
@@ -125,6 +142,7 @@ async def get_correlation_between_defense_systems_and_iso_type(response: Respons
     if system not in names_of_def_systems:
         return Response(content="Defense system doesn't exist", status_code=400)
     attributes = get_strain_column_data(db, 'isolation_type')
+    system = renameDefColumn(system)
     defense_system = get_all_strains_of_defense_system(db, system)
     if defense_system is 'No Results' or attributes is "No Results":
         return Response(content="No Results", status_code=400)
@@ -160,6 +178,7 @@ async def get_correlation_between_defense_systems_and_cluster(response: Response
     if strain.lower() not in valid_strain:
         return Response(content="Strain doesn't exist", status_code=400)
     clusters = dict_of_clusters_related_to_gene(db, strain, gene)
+    system = renameDefColumn(system)
     defense_system = get_all_strains_of_defense_system(db, system)
     if clusters is "No Results" or defense_system is "No Results":
         return Response(content="No Results", status_code=400)
