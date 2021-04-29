@@ -23,13 +23,3 @@ def test_get_gene_strain_id_false():
     assert response.status_code == 400
     assert response.content == b'No Results'
 
-
-data = {'list_strain_gene': ['PA14-PA14_RS00005']}
-
-
-# def test_Cluster_Tree_true():
-#     response = client.get("/api/v1/cluster/cluster_tree?list_strain_gene=PA14-PA14_RS00025&list_strain_gene=PA14-PA14_RS00095")
-#     assert response.status_code == 200
-#
-
-#db = next(get_db())
