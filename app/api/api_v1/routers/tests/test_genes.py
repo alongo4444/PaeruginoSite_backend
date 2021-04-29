@@ -31,14 +31,18 @@ def test_download_genes_false():
 
 def test_download_genes_by_defense_true():
     """
-    check the download endpoint when the column doesnt exist
+    check the download genes endpoint
     """
     for a, b in itertools.combinations(def_names, 2):
         response = client.get("/api/v1/genes/genes_by_defense?selectedC=start&selectedC=end&selectedAS={}&selectedAS={}".format(a,b))
         assert response.status_code == 200
         assert response.headers["Content-Disposition"] == "attachment; filename=export.csv"
 
+
 def test_download_genes_by_defense_false():
+    """
+    check the download genes endpoint when the column doesnt exist
+    """
     # col not exist
     response = client.get("/api/v1/genes/genes_by_defense?selectedC=start&selectedC=e&selectedAS=abi")
     assert response.status_code == 422
@@ -47,24 +51,22 @@ def test_download_genes_by_defense_false():
     response = client.get("/api/v1/genes/genes_by_defense?selectedC=start&selectedC=end&selectedAS=nonExist")
     assert response.status_code == 422
 
-def test_download_genes_by_defense_false():
-    # col not exist
-    response = client.get("/api/v1/genes/genes_by_defense?selectedC=start&selectedC=e&selectedAS=abi")
-    assert response.status_code == 422
-
-    # defense system not exist
-    response = client.get("/api/v1/genes/genes_by_defense?selectedC=start&selectedC=end&selectedAS=nonExist")
-    assert response.status_code == 422
 
 def test_download_genes_by_cluster_true():
+    """
+    check the download cluster endpoint
+    """
     response = client.get("/api/v1/genes/genes_by_cluster?genes=PA14_RS00025&csv=false&prot=true")
     assert response.status_code == 200
     assert response.headers["Content-Disposition"] == "attachment; filename=export.txt"
 
+
 def test_download_genes_by_cluster_false():
+    """
+    check the download cluster endpoint column doesn't exist
+    """
     response = client.get("/api/v1/genes/genes_by_cluster?genes=dhfgh&csv=false&prot=true")
     assert response.status_code == 422
-client = TestClient(app)
 
 
 def test_check_get_genes_true():
