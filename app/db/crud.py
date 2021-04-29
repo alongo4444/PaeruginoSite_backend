@@ -193,6 +193,7 @@ def get_strains_names(db: Session):
     df_from_records = df_from_records.rename(columns={"strain": "name"})
     print(df_from_records.head(5))
     df_from_records['key'] = df_from_records.index
+    df_from_records['name'] = df_from_records['name'] + " (" + df_from_records['key'] + ")"
     result = df_from_records.to_json(orient="records")
     parsed = json.loads(result)
     json.dumps(parsed, indent=4)
