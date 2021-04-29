@@ -52,9 +52,9 @@ class Strains(Base):
 
 # class that is used for the 4.4 requirement
 class GenesDefenseSystems(Base):
-    __tablename__ = "Genes_Defence_Systems"
-    strain = Column("strain", Text, primary_key=True, index=True, nullable=False)
-    locus_tag = Column("full_locus", Text, primary_key=True, index=True, nullable=False)
+    __tablename__ = "Genes_Defense_Systems"
+    strain = Column("assembly", Text, primary_key=True, index=True, nullable=False)
+    locus_tag = Column("full_locus", Text, primary_key=True, nullable=False)
     defense_system = Column("defense_system", Text)
     anti_crispr = Column("anti_crispr", Text)
 
