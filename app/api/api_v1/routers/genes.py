@@ -38,8 +38,13 @@ async def download_genes(
         selectedC: List[str] = Query(None), # the selected columns to return
         selectedAS: List[str] = Query(None) # the strains that were selected by the user
 ):
-    """Get all genes"""
+    """
+    Get genes of the selected strains
+    """
     genes = get_genes_download(db, selectedC, selectedAS)
+
+    if genes.empty:
+        return Response(content="Validation error", status_code=422)
 
     return prepare_csv_file(genes)
 
@@ -58,8 +63,15 @@ async def genes_by_defense(
     genes_by_defense = get_genes_by_defense(db, selectedC, selectedAS)
     # This is necessary for react-admin to work
     # response.headers["Content-Range"] = f"0-9/{len(users)}"
+    if genes_by_defense.empty:
+        return Response(content="Validation error", status_code=422)
+
     return prepare_csv_file(genes_by_defense)
 
+
+'''
+This endpoint is called when the user wants to download the tree as a file from the browse page (gene cluster)
+'''
 @r.get(
     "/genes_by_cluster",
     #response_model=t.List[GeneBase],
@@ -69,13 +81,17 @@ async def genes_by_cluster(
         response: Response,
         db=Depends(get_db),
         genes: List[str] = Query(None), # the index of the selected cluster
-        csv: bool = Query(None),
-        prot: bool = Query(None)
+        csv: bool = Query(None),  # flag for csv file or fasta file
+        prot: bool = Query(None) # if fasta file, flag if protein or dna
 ):
     """Get all genes"""
     genes_by_cluster = get_genes_by_cluster(db, genes)
     # This is necessary for react-admin to work
     # response.headers["Content-Range"] = f"0-9/{len(users)}"
+
+    if genes_by_cluster.empty:
+        return Response(content="Validation error", status_code=422)
+
     if csv:
         genes_by_cluster = genes_by_cluster.drop(columns=['protein_sequence', 'dna_sequence'])
         return prepare_csv_file(genes_by_cluster)

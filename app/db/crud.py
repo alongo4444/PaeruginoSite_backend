@@ -107,7 +107,12 @@ def selectedAS_to_query(selectedAS, ss):
 
 def get_genes_download(db: Session, selectedC, selectedAS):
     selectedC.insert(0, 'locus_tag')
-    cols_attr = [getattr(models.Genes, col) for col in selectedC]
+
+    try:
+        cols_attr = [getattr(models.Genes, col) for col in selectedC]
+    except AttributeError as err:
+        print(err)
+        return pd.DataFrame()
     results = db.query(models.Genes).filter(models.Genes.assembly.in_(selectedAS)).with_entities(*cols_attr).all()
     df_from_records = pd.DataFrame(results, columns=selectedC)
 
@@ -348,8 +353,11 @@ def get_genes_by_defense(db: Session, selectedC, selectedAS):
     #     selectedC_copy[idx] = "\"" + s + "\""
     selectedC.insert(0, 'locus_tag')
     selectedC_copy.insert(0, "locus_tag")
-    cols = ', '.join(selectedC_copy)
-    cols_attr = [getattr(models.Genes, item) for item in selectedC_copy]
+    try:
+        cols_attr = [getattr(models.Genes, item) for item in selectedC_copy]
+    except AttributeError as err:
+        print(err)
+        return pd.DataFrame()
     results = db.query(models.Genes).with_entities(*cols_attr).all()
     # my_query = "SELECT {} FROM \"Genes\"".format(cols)  # Get all genes
     # results = db.execute(my_query).fetchall()
@@ -472,8 +480,11 @@ def get_genes_by_cluster(db: Session, genes):
         # df_from_records_all_genes['locus_tag'] = df_from_records_all_genes['locus_tag'].apply(lambda x: remove_old_locus_string(x))
         # frames.append(df_from_records_g.merge(df_from_records_all_genes))
 
-    return pd.concat(
-        frames).drop_duplicates()  # return a single dataframe with all of the genes info in the same cluster
+    if len(frames) > 0:
+        return pd.concat(
+            frames).drop_duplicates()  # return a single dataframe with all of the genes info in the same cluster
+
+    return pd.DataFrame()
 
 
 def remove_old_locus_string(s):
