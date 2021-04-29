@@ -1,11 +1,13 @@
 from fastapi.testclient import TestClient
+
+from app.api.api_v1.routers.statistics import renameDefColumn
 from app.main import app
 import itertools
 client = TestClient(app)
 
 # requirements 4.5
 
-def_names = ["ABI", "BREX", "DISARM", "CRISPR", "DISARMassociated", "DND", "RM", "TA",
+def_names = ["ABI", "BREX", "DISARM", "CRISPR", "DND", "RM", "TA",
 "WADJET", "ZORYA", "HACHIMAN", "LAMASSU", "SEPTU", "THOERIS", "GABIJA", "DRUANTIA", "KIWA", "PAGOS", "SHEDU"]
 
 # CORRELATION BETWEEN TWO DEFENSE SYSTEMS
@@ -318,3 +320,19 @@ def test_correlation_between_cluster_iso_missing_gene():
     """
     response = client.get("api/v1/statistics/correlationBetweenClusterAndIsolationType?isoType=clinical&strain=PA14")
     assert response.status_code == 422
+
+
+def test_convert_defense_system_name():
+    """
+    checks the internal string function
+    """
+    test1 = renameDefColumn("RM")
+    assert test1 in "rm"
+
+
+def test_convert_defense_system_name_2():
+    """
+    checks the internal string function
+    """
+    test2 = renameDefColumn("TA|TypeII")
+    assert test2 in "ta_typeii"
