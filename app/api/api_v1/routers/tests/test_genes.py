@@ -52,3 +52,13 @@ def test_download_genes_by_cluster_true():
 def test_download_genes_by_cluster_false():
     response = client.get("/api/v1/genes/genes_by_cluster?genes=dhfgh&csv=false&prot=true")
     assert response.status_code == 422
+client = TestClient(app)
+
+
+def test_check_get_genes_true():
+    """
+    check the endpoint of getting genes
+    """
+    response = client.get("http://127.0.0.1:8800/api/v1/genes")
+    assert response.status_code == 200
+

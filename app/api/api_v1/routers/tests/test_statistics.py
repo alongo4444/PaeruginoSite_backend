@@ -5,7 +5,7 @@ client = TestClient(app)
 
 # requirements 4.5
 
-def_names = ["ABI", "BREX", "DISARM", "CRISPR", "DISARMassociated", "DND", "RM", "TA",
+def_names = ["ABI", "BREX", "DISARM", "CRISPR", "DND", "RM", "TA",
 "WADJET", "ZORYA", "HACHIMAN", "LAMASSU", "SEPTU", "THOERIS", "GABIJA", "DRUANTIA", "KIWA", "PAGOS", "SHEDU"]
 
 # CORRELATION BETWEEN TWO DEFENSE SYSTEMS
