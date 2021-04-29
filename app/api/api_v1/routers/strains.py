@@ -316,17 +316,21 @@ async def strain_circos_graph(strain_name, response: Response):
     if strain_name:
         try:
             split = strain_name.split("(")
-            assembly = split[0][:-1]
+            assembly = split[1][:-1]
+            print(assembly)
             strain_file = Path("static/Circos/" + assembly + ".html")
+            print(strain_file)
             if strain_file.is_file():
                 return FileResponse(strain_file, status_code=200)
+            else:
+                return FileResponse(Path("static/Circos/" + "GCF_000404265.1" + ".html"), status_code=200)
         # if the user inserts a wrong format
         except Exception:
             return Response(content="Wrong Parameters", status_code=400)
     # in the meantime if the file doesn't exist we return a default one
     else:
         # file is not in the directory (the strain name is wrong)
-        return FileResponse(Path("static/" + "GCF_000404265.1" + ".html"), status_code=200)
+        return FileResponse(Path("static/Circos/" + "GCF_000404265.1" + ".html"), status_code=200)
         # return Response(content="No Results", status_code=400)
 
 
@@ -339,10 +343,11 @@ async def get_genes_def_systems(strain_name, response: Response, db=Depends(get_
     if strain_name:
         try:
             split = strain_name.split("(")
-            assembly = split[0][:-1]
+            assembly = split[1][:-1]
             df = get_defense_systems_of_genes(db, assembly)
             if df == 'No Results':
-                return Response(content="No Results", status_code=400)
+                # return Response(content="No Results", status_code=400)
+                df = get_defense_systems_of_genes(db, "GCF_000404265.1")
         except Exception:
             df = get_defense_systems_of_genes(db, "GCF_000404265.1")
     return df
