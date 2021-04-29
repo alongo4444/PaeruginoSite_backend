@@ -31,7 +31,7 @@ sortObj = pysort.Sorting()
 )
 async def cluster_tree(
         response: Response,
-        list_strain_gene: List[str] = Query(None),
+        list_strain_gene: List[str] = Query([]),
         subtree: Optional[List[int]] = Query([]),
         MLST: bool = False,
         db=Depends(get_db)
@@ -238,6 +238,8 @@ async def cluster_tree(
 '''
 this function used to get all the genes of a certain assembly of a strain  
 '''
+
+
 @r.get(
     "/get_gene_strain_id/{strain_id}",
     response_model_exclude_none=True,
@@ -263,10 +265,26 @@ async def get_gene_strain_id(
             return parsed
         else:
             status_code = 400
-            #return json.loads({'name': "No Results"})
+            # return json.loads({'name': "No Results"})
             return Response(content="No Results", status_code=400)
     except Exception as e:
         print(e)
         return Response(content="No Results", status_code=400)
 
 
+@r.get(
+    "/get_defense_system_names/",
+    # response_model=t.List[StrainBase],
+    # response_model_exclude_none=True,
+)
+async def strains_list(
+        response: Response,
+        db=Depends(get_db)
+):
+    """Get all strains"""
+    ds = get_defense_system_names(db)
+    # This is necessary for react-admin to work
+    # response.headers["Content-Range"] = f"0-9/{len(users)}"
+    if ds is None:
+        return Response(content="No Results", status_code=400)
+    return ds

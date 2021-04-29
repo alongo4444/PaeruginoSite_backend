@@ -16,68 +16,69 @@ from starlette.responses import StreamingResponse
 from . import models, schemas
 from app.core.security import get_password_hash
 
+#
+# def get_user(db: Session, user_id: int):
+#     user = db.query(models.User).filter(models.User.id == user_id).first()
+#     if not user:
+#         raise HTTPException(status_code=404, detail="User not found")
+#     return user
+#
+#
+# def get_user_by_email(db: Session, email: str) -> schemas.UserBase:
+#     return db.query(models.User).filter(models.User.email == email).first()
+#
+#
+# def get_users(
+#         db: Session, skip: int = 0, limit: int = 100
+# ) -> t.List[schemas.UserOut]:
+#     return db.query(models.User).offset(skip).limit(limit).all()
+#
+#
+# def create_user(db: Session, user: schemas.UserCreate):
+#     hashed_password = get_password_hash(user.password)
+#     db_user = models.User(
+#         first_name=user.first_name,
+#         last_name=user.last_name,
+#         email=user.email,
+#         is_active=user.is_active,
+#         is_superuser=user.is_superuser,
+#         hashed_password=hashed_password,
+#     )
+#     db.add(db_user)
+#     db.commit()
+#     db.refresh(db_user)
+#     return db_user
+#
+#
+# def delete_user(db: Session, user_id: int):
+#     user = get_user(db, user_id)
+#     if not user:
+#         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
+#     db.delete(user)
+#     db.commit()
+#     return user
+#
+#
+# def edit_user(
+#         db: Session, user_id: int, user: schemas.UserEdit
+# ) -> schemas.User:
+#     db_user = get_user(db, user_id)
+#     if not db_user:
+#         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
+#     update_data = user.dict(exclude_unset=True)
+#
+#     if "password" in update_data:
+#         update_data["hashed_password"] = get_password_hash(user.password)
+#         del update_data["password"]
+#
+#     for key, value in update_data.items():
+#         setattr(db_user, key, value)
+#
+#     db.add(db_user)
+#     db.commit()
+#     db.refresh(db_user)
+#     return db_user
 
-def get_user(db: Session, user_id: int):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
-
-
-def get_user_by_email(db: Session, email: str) -> schemas.UserBase:
-    return db.query(models.User).filter(models.User.email == email).first()
-
-
-def get_users(
-        db: Session, skip: int = 0, limit: int = 100
-) -> t.List[schemas.UserOut]:
-    return db.query(models.User).offset(skip).limit(limit).all()
-
-
-def create_user(db: Session, user: schemas.UserCreate):
-    hashed_password = get_password_hash(user.password)
-    db_user = models.User(
-        first_name=user.first_name,
-        last_name=user.last_name,
-        email=user.email,
-        is_active=user.is_active,
-        is_superuser=user.is_superuser,
-        hashed_password=hashed_password,
-    )
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
-
-
-def delete_user(db: Session, user_id: int):
-    user = get_user(db, user_id)
-    if not user:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
-    db.delete(user)
-    db.commit()
-    return user
-
-
-def edit_user(
-        db: Session, user_id: int, user: schemas.UserEdit
-) -> schemas.User:
-    db_user = get_user(db, user_id)
-    if not db_user:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
-    update_data = user.dict(exclude_unset=True)
-
-    if "password" in update_data:
-        update_data["hashed_password"] = get_password_hash(user.password)
-        del update_data["password"]
-
-    for key, value in update_data.items():
-        setattr(db_user, key, value)
-
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
 
 '''
 def get_table_names(db: Session):
@@ -104,6 +105,7 @@ def selectedAS_to_query(selectedAS, ss):
             ret = ret + " OR {}='{}'".format(ss, s)
     return ret
 '''
+
 
 def get_genes_download(db: Session, selectedC, selectedAS):
     selectedC.insert(0, 'locus_tag')
@@ -152,6 +154,7 @@ def get_genes(db: Session):
     df_from_records['locus_tag'] = df_from_records.index
     return df_from_records.to_dict('records')
 
+
 def get_strains_index(db: Session):
     """
     this function returns from DB a JSON with 2 keys: index of strains and name of strain.
@@ -165,14 +168,15 @@ def get_strains_index(db: Session):
     return parsed
 
 
-def get_strains(db: Session):
-    result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain, models.Strains.level,
-                                                    models.Strains.gc, models.Strains.size,
-                                                    models.Strains.scaffolds, models.Strains.assembly_refseq,
-                                                    models.Strains.assembly_genbank).all()
-    df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain', 'level', 'gc', 'size', 'scaffolds',
-                                                                 'assembly_refseq', 'assembly'])
-    return df_from_records
+# TODO check if their is a use for this function
+# def get_strains(db: Session):
+#     result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain, models.Strains.level,
+#                                                     models.Strains.gc, models.Strains.size,
+#                                                     models.Strains.scaffolds, models.Strains.assembly_refseq,
+#                                                     models.Strains.assembly_genbank).all()
+#     df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain', 'level', 'gc', 'size', 'scaffolds',
+#                                                                  'assembly_refseq', 'assembly'])
+#     return df_from_records
 
 
 def get_strains_names(db: Session):
@@ -210,12 +214,10 @@ def get_strains_cluster(db: Session, strains_genes):
     for s_g in strains_genes:
         split = s_g.split('-')
         search = "%{}%".format(split[1])
-        results = db.query(models.Clusters).\
-            with_entities(models.Clusters.index, models.Clusters.combined_index).\
+        results = db.query(models.Clusters). \
+            with_entities(models.Clusters.index, models.Clusters.combined_index). \
             filter(getattr(models.Clusters, split[0].lower()).like(search)).all()
-        # my_query = "SELECT index,combined_index FROM \"Cluster\" WHERE {} LIKE '%{}%'".format(split[0], split[1])
-        # results = db.execute(my_query).fetchall()
-        if (len(results) > 0):
+        if len(results) > 0:
             list_strains.append(results[0])
     return list_strains
 
@@ -232,7 +234,6 @@ def get_strain_isolation(db: Session):
     return df_from_records
 
 
-
 '''
 this get the strain id and the strain name and isolation type and mlst
 '''
@@ -240,10 +241,10 @@ this get the strain id and the strain name and isolation type and mlst
 
 def get_strain_isolation_mlst(db: Session):
     result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain,
-                                                    models.Strains.isolation_type,models.Strains.mlst_sequence_type).all()
+                                                    models.Strains.isolation_type,
+                                                    models.Strains.mlst_sequence_type).all()
     df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain', 'isolation_type', 'MLST'])
     return df_from_records
-
 
 
 '''
@@ -297,6 +298,7 @@ def parse_circos_html(html_file):
 
     return res_dict
 
+
 # prepares the "where" query, gets the selected options from the user and adds it to the field we what to filter by
 #
 # example: selectedAS = ['PAO1', 'PA14'] , ret = 'assembly_x' will return:
@@ -314,6 +316,7 @@ def selectedAS_to_query_contains_str(selectedAS):
     return ret
 '''
 
+
 # returns a dataframe with the genes information of the system defenses in selectedAS with the columns in selectedC.
 def get_genes_by_defense(db: Session, selectedC, selectedAS):
     # if the user didn't select any defense system, return all:
@@ -325,8 +328,8 @@ def get_genes_by_defense(db: Session, selectedC, selectedAS):
     genes_ds = []
     for s in selectedAS:
         search = "%{}%".format(s)
-        results = db.query(models.GenesDefenseSystems).\
-            with_entities(models.GenesDefenseSystems.locus_tag).\
+        results = db.query(models.GenesDefenseSystems). \
+            with_entities(models.GenesDefenseSystems.locus_tag). \
             filter(models.GenesDefenseSystems.defense_system.like(search)).all()
         # my_query = "SELECT full_locus FROM \"Genes_Defence_Systems\" WHERE defense_system LIKE '%{}%'".format(s)
         # results = db.execute(my_query).fetchall()
@@ -393,10 +396,11 @@ def get_defense_systems_of_genes(db: Session, strain_name):
     return df
 
 
-def value_loc(value, df):
-    for col in list(df):
-        if df[col].values.find(value) != -1:
-            return (list(df).index(col), df[col][df[col].find(value) != -1].index[0])
+# TODO ido put this on # no usages need to check
+# def value_loc(value, df):
+#     for col in list(df):
+#         if df[col].values.find(value) != -1:
+#             return (list(df).index(col), df[col][df[col].find(value) != -1].index[0])
 
 
 def get_genes_by_cluster(db: Session, genes):
@@ -407,7 +411,7 @@ def get_genes_by_cluster(db: Session, genes):
                                                       ).all()
     # my_query = "SELECT * FROM \"Cluster\""
     # results = db.execute(my_query)
-    col_names = ['index','pa14','pao1','combined_index']
+    col_names = ['index', 'pa14', 'pao1', 'combined_index']
     df_from_records = pd.DataFrame.from_records(results, columns=col_names)
     first_column = df_from_records.columns[0]
     last_column = df_from_records.columns[-1]
@@ -479,16 +483,22 @@ def remove_old_locus_string(s):
         return s.replace('old_locus_tag=', '')
     return s
 
+
 # prepares a fasta file. returns as a text file to the user. the front end needs to translate it into a .faa file.
 def prepare_fasta_file(df, prot):
     final_txt = ""
     for index, row in df.iterrows():
-        locus_tag, start_g, end_g, name, g_accession, cluster_index,product_accession  = row['locus_tag'], row['start'], row['end'], row['name'], row['genomic_accession'], row['cluster_index'], row['product_accession']
+        locus_tag, start_g, end_g, name, g_accession, cluster_index, product_accession = row['locus_tag'], row['start'], \
+                                                                                         row['end'], row['name'], row[
+                                                                                             'genomic_accession'], row[
+                                                                                             'cluster_index'], row[
+                                                                                             'product_accession']
         seq = row['protein_sequence'] if prot else row['dna_sequence']
         every = 120
-        seq = '\n'.join(seq[i:i+every] for i in range(0, len(seq), every))
+        seq = '\n'.join(seq[i:i + every] for i in range(0, len(seq), every))
         type = 'prot' if prot else 'dna'
-        newentry = ">{}_{} [locus_tag = {}] [location = {}..{}] [name = {}] [cluster_index = {}] [product_accession = {}] \n{}\n".format(g_accession,type,locus_tag,start_g,end_g,name,cluster_index,product_accession,seq)
+        newentry = ">{}_{} [locus_tag = {}] [location = {}..{}] [name = {}] [cluster_index = {}] [product_accession = {}] \n{}\n".format(
+            g_accession, type, locus_tag, start_g, end_g, name, cluster_index, product_accession, seq)
         final_txt += newentry
 
     output = io.StringIO()
@@ -559,9 +569,9 @@ def get_all_strains_of_defense_system(db: Session, defense_system):
     :return: dataframe that contains the relevant information
     """
     cols = ['index', defense_system.lower()]
-    query = db.query(models.StrainsDefenseSystems)\
+    query = db.query(models.StrainsDefenseSystems) \
         .with_entities(getattr(models.StrainsDefenseSystems, cols[0]),
-                       getattr(models.StrainsDefenseSystems, cols[1]),)                       \
+                       getattr(models.StrainsDefenseSystems, cols[1]), ) \
         .all()
     df = pd.DataFrame.from_records(query, columns=['index', defense_system.lower()])
     if df.empty:
@@ -578,9 +588,9 @@ def get_strain_column_data(db: Session, category_name):
     :return: dataframe that contains the relevant information
     """
     cols = ['index', category_name.lower()]
-    query = db.query(models.Strains)\
+    query = db.query(models.Strains) \
         .with_entities(getattr(models.Strains, cols[0]),
-                       getattr(models.Strains, cols[1]),).all()
+                       getattr(models.Strains, cols[1]), ).all()
     df = pd.DataFrame.from_records(query, columns=['index', category_name.lower()])
     if df.empty:
         return "No Results"
@@ -597,20 +607,24 @@ def dict_of_clusters_related_to_gene(db: Session, strain, gene):
     :return: dataframe that contains the relevant information
     """
     search = "%{}%".format(gene)
-    query = db.query(models.Clusters)\
+    query = db.query(models.Clusters) \
         .with_entities(models.Clusters.index, getattr(models.Clusters, strain.lower()),
-                       models.Clusters.combined_index).filter(getattr(models.Clusters, strain.lower()).like(search)).all()
+                       models.Clusters.combined_index).filter(
+        getattr(models.Clusters, strain.lower()).like(search)).all()
     df = pd.DataFrame.from_records(query, columns=['index', strain.lower(), 'combined_index'])
     if df.empty:
         return "No Results"
     return df
 
+
 '''
 this get the strain id and the strain name with the MLST metadata
 '''
 
+
 def get_strains_MLST(db: Session):
-    result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain,models.Strains.mlst_sequence_type).all()
+    result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain,
+                                                    models.Strains.mlst_sequence_type).all()
     df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain', 'MLST'])
     return df_from_records
 
@@ -622,7 +636,7 @@ def get_colors_dict(db: Session):
     :return: dictionary of colors
     """
     result = db.query(models.DefenseSystems).with_entities(models.DefenseSystems.name, models.DefenseSystems.label,
-                                                   models.DefenseSystems.color).all()
+                                                           models.DefenseSystems.color).all()
     df_from_records = pd.DataFrame.from_records(result, columns=['value', 'label', 'color'])
     print(df_from_records)
     dict = df_from_records.to_dict(orient='records')
