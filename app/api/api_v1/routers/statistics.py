@@ -14,6 +14,7 @@ from scipy.stats import mannwhitneyu
 
 statistics_router = r = APIRouter()
 
+
 def renameDefColumn(s_name):
     """
     renames a string from the frontend to a format which can be read from the back end. Used for functions which uses the defense systems in the StrainsDefenseSystems table.

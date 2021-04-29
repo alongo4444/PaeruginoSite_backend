@@ -5,6 +5,9 @@ client = TestClient(app)
 
 
 def test_get_gene_strain_id_true():
+    """
+    check the endpoint of the strain id
+    """
     response = client.get("/api/v1/cluster/get_gene_strain_id/GCF_000014625.1")
     assert response.status_code == 200
     assert len(response.json()) == 6021

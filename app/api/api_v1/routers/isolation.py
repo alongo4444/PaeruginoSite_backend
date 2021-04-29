@@ -1,15 +1,10 @@
 import hashlib
-import json
 import os, subprocess
-
-import pandas as pd
 from fastapi import APIRouter, Query, Depends,HTTPException
 from typing import List, Optional
 from pathlib import Path
-
 from sorting_techniques import pysort
 from starlette.responses import FileResponse
-
 from app.api.api_v1.routers.strains import get_offset, get_font_size, get_spacing, get_resolution
 from app.db.session import get_db
 from app.db.crud import (
