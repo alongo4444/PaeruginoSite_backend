@@ -18,17 +18,16 @@ def test_get_strain_genes_def_systems_true():
     """
     check if we receive the genes that contains defense system
     """
-    response = client.get("api/v1/strains/strainGenesDefSystems/PA14")
+    response = client.get("api/v1/strains/strainGenesDefSystems/GCF_000404265.1")
     assert response.status_code == 200
 
 
 def test_get_strain_genes_def_systems_false():
     """
-    check if we receive the 400 response because the strain doesn't exist
+    check if we receive the 200 response because the strain doesn't exist (we send back default)
     """
     response = client.get("api/v1/strains/strainGenesDefSystems/PA145")
-    assert response.status_code == 400
-    assert response.content == b'No Results'
+    assert response.status_code == 200
 
 
 def test_get_strains_indexes():
