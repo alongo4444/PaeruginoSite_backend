@@ -398,8 +398,8 @@ def get_defense_systems_of_two_strains(db: Session, first_strain_name, second_st
     df = pd.DataFrame.from_records(query, columns=['index', first_strain_name.lower(), second_strain_name.lower()])
     if df.empty:
         return "No Results"
-    else:
-        df = df.to_dict('records')
+    # else:
+    #     df = df.to_dict('records')
     return df
 
 
