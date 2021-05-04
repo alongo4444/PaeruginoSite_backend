@@ -6,7 +6,7 @@ client = TestClient(app)
 # Integration Tests - Strains
 
 
-def test_get_colors_true():
+def test_getColorsTrue():
     """
     check if we get the colors of the defense system
     """
@@ -14,7 +14,7 @@ def test_get_colors_true():
     assert response.status_code == 200
 
 
-def test_get_strain_genes_def_systems_true():
+def test_getGenesDefSystemsTrue():
     """
     check if we receive the genes that contains defense system
     """
@@ -22,7 +22,7 @@ def test_get_strain_genes_def_systems_true():
     assert response.status_code == 200
 
 
-def test_get_strain_genes_def_systems_false():
+def test_getGenesDefSystemsFalse():
     """
     check if we receive the 200 response because the strain doesn't exist (we send back default)
     """
@@ -30,7 +30,7 @@ def test_get_strain_genes_def_systems_false():
     assert response.status_code == 200
 
 
-def test_get_strains_indexes():
+def test_getStrainIndexesTrue():
     """
     check the strain indexes endpoint
     """
@@ -38,7 +38,7 @@ def test_get_strains_indexes():
     assert response.status_code == 200
 
 
-def test_get_strains_list():
+def test_getStrainNamesTrue():
     """
     check the strains list endpoint
     """
@@ -46,7 +46,7 @@ def test_get_strains_list():
     assert response.status_code == 200
 
 
-def test_load_def_systems_names():
+def test_loadDefSystemNames():
     """
     check that the loading works properly
     """
@@ -54,7 +54,7 @@ def test_load_def_systems_names():
     assert len(names) > 0
 
 
-def test_load_colors_def_systems():
+def test_loadColorsDefSystemNames():
     """
     check that the color loading works properly
     """

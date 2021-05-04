@@ -12,7 +12,8 @@ def_names = ["ABI", "BREX", "DISARM", "CRISPR", "DND", "RM", "TA",
 
 # CORRELATION BETWEEN TWO DEFENSE SYSTEMS
 
-def test_correlation_between_two_def_systems_true():
+
+def test_CorrelationTwoDefSystemsTrue():
     """
     check if the response is positive with every combination of defense systems
     """
@@ -22,7 +23,7 @@ def test_correlation_between_two_def_systems_true():
             assert response.status_code == 200
 
 
-def test_correlation_between_same_defense_system_false():
+def test_CorrelationSameDefSystemsFalse():
     """
     check how the system handles the correlation between the same defense system
     """
@@ -33,7 +34,7 @@ def test_correlation_between_same_defense_system_false():
         assert response.content == b'Same Defense System'
 
 
-def test_correlation_between_real_defense_system_and_unreal_false():
+def test_CorrelationOneDefSystemCorruptFalse():
     """
     check how the system handles the correlation between one existing defense system
     and one that doesn't exist
@@ -45,7 +46,7 @@ def test_correlation_between_real_defense_system_and_unreal_false():
         assert response.content == b"Defense system doesn't exist"
 
 
-def test_correlation_between_two_unreal_defense_system_false():
+def test_CorrelationTwoDefSystemCorruptFalse():
     """
     check how the system handles the correlation between two defense system that doesn't exist
     """
@@ -54,7 +55,7 @@ def test_correlation_between_two_unreal_defense_system_false():
     assert response.content == b"Defense system doesn't exist"
 
 
-def test_correlation_between_defense_systems_missing_one_value_false():
+def test_CorrelationTwoDefSystemMissValueFalse():
     """
     check how the system handles one missing value in the query params
     """
@@ -63,11 +64,11 @@ def test_correlation_between_defense_systems_missing_one_value_false():
     assert response.content == b"Wrong number of parameters"
 
 
-def test_correlation_between_defense_systems_empty_values_false():
+def test_CorrelationTwoDefSystemEmptyValueFalse():
     """
     check how the system handles two missing values in the query params
     """
-    response = client.get("api/v1/statistics/correlationBetweenDefenseSystems?")
+    response = client.get("api/v1/statistics/correlationBetweenDefenseSystems")
     assert response.status_code == 400
     assert response.content == b"Wrong number of parameters"
 
@@ -77,7 +78,7 @@ def test_correlation_between_defense_systems_empty_values_false():
 attr_list = ['size', 'gc', 'cds']
 
 
-def test_correlation_between_defense_system_and_attribute_true():
+def test_CorrelationDefSystemAttrTrue():
     """
     checks how the system handles each combination of defense system and attribute
     """
@@ -87,7 +88,7 @@ def test_correlation_between_defense_system_and_attribute_true():
             assert response.status_code == 200
 
 
-def test_correlation_between_unreal_def_sys_real_attribute_false():
+def test_CorrelationCorruptDefSystemAttrFalse():
     """
     checks how the system handles a defense system that doesn't exist and an
     attribute that does exist
@@ -99,7 +100,7 @@ def test_correlation_between_unreal_def_sys_real_attribute_false():
         assert response.content == b"Defense system doesn't exist"
 
 
-def test_correlation_between_real_def_sys_unreal_attribute_false():
+def test_CorrelationDefSystemCorruptAttrFalse():
     """
     checks how the system handles a defense system that does exist and an
     attribute that doesn't exist
@@ -111,7 +112,7 @@ def test_correlation_between_real_def_sys_unreal_attribute_false():
         assert response.content == b"Wrong category name"
 
 
-def test_correlation_between_missing_def_sys_and_attribute_false():
+def test_CorrelationMissingDefSystemAttrFalse():
     """
     checks how the system handles a missing defense system that does exist and an attribute
     """
@@ -121,7 +122,7 @@ def test_correlation_between_missing_def_sys_and_attribute_false():
         assert response.status_code == 422
 
 
-def test_correlation_between_missing_attribute_real_def_false():
+def test_CorrelationDefSystemMissingAttrFalse():
     """
     checks how the system handles a missing attribute and a defense system that does exist
     """
@@ -136,7 +137,7 @@ def test_correlation_between_missing_attribute_real_def_false():
 iso_type = ['Environmental/other', 'Clinical']
 
 
-def test_correlation_between_defense_system_and_isotype_true():
+def test_CorrelationDefSystemIsotypeTrue():
     """
     checks how the system handles each combination of defense system and isolation type
     """
@@ -146,7 +147,7 @@ def test_correlation_between_defense_system_and_isotype_true():
             assert response.status_code == 200
 
 
-def test_correlation_between_unreal_def_sys_real_isotype_false():
+def test_CorrelationCorruptDefSystemIsotypeFalse():
     """
     checks how the system handles unreal defense system and real isolation type
     """
@@ -156,7 +157,7 @@ def test_correlation_between_unreal_def_sys_real_isotype_false():
         assert response.content == b"Defense system doesn't exist"
 
 
-def test_correlation_between_unreal_isotype_and_defense_system_false():
+def test_CorrelationDefSystemCorruptIsotypeFalse():
     """
     checks how the system handles unreal isolation type and real defense system
     """
@@ -167,7 +168,7 @@ def test_correlation_between_unreal_isotype_and_defense_system_false():
         assert response.content == b"Wrong isotype"
 
 
-def test_correlation_between_missing_isotype_false():
+def test_CorrelationDefSystemMissIsotypeFalse():
     """
     checks how the system handles missing isolation type and real defense system
     """
@@ -176,19 +177,18 @@ def test_correlation_between_missing_isotype_false():
         assert response.status_code == 422
 
 
-def test_correlation_between_missing_defense_system_and_isotype_false():
+def test_CorrelationMissDefSystemIsotypeFalse():
     """
     checks how the system handles missing isolation type and real defense system
     """
-    for sys in def_names:
-        response = client.get("api/v1/statistics/correlationBetweenDefenseSystemAndIsolationType?system="+sys)
-        assert response.status_code == 422
+    response = client.get("api/v1/statistics/correlationBetweenDefenseSystemAndIsolationType?isoType=clinical")
+    assert response.status_code == 422
 
 
 # CORRELATION BETWEEN CLUSTER AND DEFENSE SYSTEM
 
 
-def test_correlation_between_defense_system_and_cluster_true():
+def test_CorrelationDefSystemClusterTrue():
     """
     checks how the system handles each combination of defense system and pa14 and specific gene
     """
@@ -198,7 +198,7 @@ def test_correlation_between_defense_system_and_cluster_true():
             assert response.status_code == 200
 
 
-def test_correlation_between_def_sys_and_cluster_gene_doesnt_exist_false():
+def test_CorrelationDefSystemClusterCorruptGeneFalse():
     """
     checks how the system handles a wrong gene name
     """
@@ -206,10 +206,10 @@ def test_correlation_between_def_sys_and_cluster_gene_doesnt_exist_false():
             response = client.get("api/v1/statistics/correlationBetweenDefenseSystemAndCluster?system="+sys+
                                   "&strain=PA14&gene=RS135656")
             assert response.status_code == 400
-            assert response.content == b"Error in Value"
+            assert response.content == b"Gene doesn't exist"
 
 
-def test_correlation_between_def_sys_and_cluster_strain_doesnt_exist_false():
+def test_CorrelationDefSystemClusterCorruptStrainFalse():
     """
     checks how the system handles wrong strain name
     """
@@ -220,7 +220,7 @@ def test_correlation_between_def_sys_and_cluster_strain_doesnt_exist_false():
             assert response.content == b"Strain doesn't exist"
 
 
-def test_correlation_between_def_sys_and_cluster_def_doesnt_exist_false():
+def test_CorrelationDefSystemClusterCorruptDefFalse():
     """
     checks how the system handles wrong defense system name
     """
@@ -230,7 +230,7 @@ def test_correlation_between_def_sys_and_cluster_def_doesnt_exist_false():
     assert response.content == b"Defense system doesn't exist"
 
 
-def test_correlation_between_def_sys_missing_strain_false():
+def test_CorrelationDefSystemClusterMissStrainFalse():
     """
     checks how the system handles missing strain
     """
@@ -238,7 +238,7 @@ def test_correlation_between_def_sys_missing_strain_false():
     assert response.status_code == 422
 
 
-def test_correlation_between_def_sys_missing_gene_false():
+def test_CorrelationDefSystemClusterMissGeneFalse():
     """
     checks how the system handles missing gene
     """
@@ -246,7 +246,7 @@ def test_correlation_between_def_sys_missing_gene_false():
     assert response.status_code == 422
 
 
-def test_correlation_between_def_sys_missing_defense_sys_false():
+def test_CorrelationDefSystemClusterMissDefFalse():
     """
     checks how the system handles missing defense system name
     """
@@ -257,7 +257,7 @@ def test_correlation_between_def_sys_missing_defense_sys_false():
 # CORRELATION BETWEEN CLUSTER AND ISOLATION TYPE
 
 
-def test_correlation_between_isotype_and_cluster_true():
+def test_CorrelationIsotypeClusterTrue():
     """
     checks how the system handles each combination of isotype and certain gene and strain
     """
@@ -267,7 +267,7 @@ def test_correlation_between_isotype_and_cluster_true():
             assert response.status_code == 200
 
 
-def test_correlation_between_isotype_and_cluster_gene_doesnt_exist_false():
+def test_CorrelationIsotypeClusterCorruptGeneFalse():
     """
     checks how the system handles a wrong gene name
     """
@@ -275,10 +275,10 @@ def test_correlation_between_isotype_and_cluster_gene_doesnt_exist_false():
             response = client.get("api/v1/statistics/correlationBetweenClusterAndIsolationType?isoType="+iso+
                                   "&strain=PA14&gene=RS135656")
             assert response.status_code == 400
-            assert response.content == b"Error in Value"
+            assert response.content == b"Gene doesn't exist"
 
 
-def test_correlation_between_isotype_and_cluster_strain_doesnt_exist_false():
+def test_CorrelationIsotypeClusterCorruptStrainFalse():
     """
     checks how the system handles a wrong strain name
     """
@@ -289,7 +289,7 @@ def test_correlation_between_isotype_and_cluster_strain_doesnt_exist_false():
             assert response.content == b"Strain doesn't exist"
 
 
-def test_correlation_between_isotype_and_cluster_iso_doesnt_exist_false():
+def test_CorrelationIsotypeClusterCorruptIsotypeFalse():
     """
     checks how the system handles a wrong isotype name
     """
@@ -298,7 +298,7 @@ def test_correlation_between_isotype_and_cluster_iso_doesnt_exist_false():
     assert response.content == b"Wrong isotype"
 
 
-def test_correlation_between_cluster_iso_missing_isotype():
+def test_CorrelationIsotypeClusterMissIsotypeFalse():
     """
     checks how the system handles missing isotype
     """
@@ -306,7 +306,7 @@ def test_correlation_between_cluster_iso_missing_isotype():
     assert response.status_code == 422
 
 
-def test_correlation_between_cluster_iso_missing_strain():
+def test_CorrelationIsotypeClusterMissStrainFalse():
     """
     checks how the system handles missing strain
     """
@@ -314,7 +314,7 @@ def test_correlation_between_cluster_iso_missing_strain():
     assert response.status_code == 422
 
 
-def test_correlation_between_cluster_iso_missing_gene():
+def test_CorrelationIsotypeClusterMissGeneFalse():
     """
     checks how the system handles missing gene
     """
@@ -322,17 +322,20 @@ def test_correlation_between_cluster_iso_missing_gene():
     assert response.status_code == 422
 
 
-def test_convert_defense_system_name():
+def test_ConvertDefSystemName():
     """
     checks the internal string function
     """
     test1 = renameDefColumn("RM")
     assert test1 in "rm"
+    test2 = renameDefColumn("TA|TypeII")
+    assert test2 in "ta_typeii"
 
-
+'''
 def test_convert_defense_system_name_2():
     """
     checks the internal string function
     """
     test2 = renameDefColumn("TA|TypeII")
     assert test2 in "ta_typeii"
+'''

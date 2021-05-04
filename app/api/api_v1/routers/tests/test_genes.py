@@ -9,7 +9,7 @@ def_names = ["ABI", "BREX", "DISARM", "CRISPR", "DISARMassociated", "DND", "RM",
 
 
 
-def test_download_genes_true():
+def test_DownloadGenesTrue():
     """
     check the download endpoint
     """
@@ -18,7 +18,7 @@ def test_download_genes_true():
     assert response.headers["Content-Disposition"] == "attachment; filename=export.csv"
 
 
-def test_download_genes_false():
+def test_DownloadGenesFalse():
     """
     check the download endpoint when the column doesnt exist
     """
@@ -31,17 +31,18 @@ def test_download_genes_false():
     assert response.status_code == 422
 
 
-def test_download_genes_by_defense_true():
+def test_DownloadDefenseSystemsTrue():
     """
     check the download genes endpoint
     """
     for a, b in itertools.combinations(def_names, 2):
-        response = client.get("/api/v1/genes/genes_by_defense?selectedC=start&selectedC=end&selectedAS={}&selectedAS={}".format(a,b))
+        response = client.get("/api/v1/genes/genes_by_defense?selectedC=s"
+                              "tart&selectedC=end&selectedAS={}&selectedAS={}".format(a, b))
         assert response.status_code == 200
         assert response.headers["Content-Disposition"] == "attachment; filename=export.csv"
 
 
-def test_download_genes_by_defense_false():
+def test_DownloadDefenseSystemsFalse():
     """
     check the download genes endpoint when the column doesnt exist
     """
@@ -54,7 +55,7 @@ def test_download_genes_by_defense_false():
     assert response.status_code == 422
 
 
-def test_download_genes_by_cluster_true():
+def test_DownloadGenesByClusterTrue():
     """
     check the download cluster endpoint
     """
@@ -63,7 +64,7 @@ def test_download_genes_by_cluster_true():
     assert response.headers["Content-Disposition"] == "attachment; filename=export.txt"
 
 
-def test_download_genes_by_cluster_false():
+def test_DownloadGenesByClusterFalse():
     """
     check the download cluster endpoint column doesn't exist
     """
@@ -71,7 +72,7 @@ def test_download_genes_by_cluster_false():
     assert response.status_code == 422
 
 
-def test_check_get_genes_true():
+def test_GetGenesTrue():
     """
     check the endpoint of getting genes
     """

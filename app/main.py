@@ -43,11 +43,11 @@ async def db_session_middleware(request: Request, call_next):
     return response
 
 
-@app.get("/api/v1/tables")
-async def example_task():
-    #request.state.db
-
-    return {"message": "success"}
+# @app.get("/api/v1/tables")
+# async def example_task():
+#     #request.state.db
+#
+#     return {"message": "success"}
 
 
 # Routers

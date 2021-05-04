@@ -34,7 +34,6 @@ async def get_correlation_between_defense_systems(response: Response,
                                                   systems: List[str] = Query([]),
                                                   db=Depends(get_db)):
 
-
     names_of_def_systems = get_defense_systems_names(db, True)
     if len(systems) != 2:
         return Response(content="Wrong number of parameters", status_code=400)
@@ -187,7 +186,7 @@ async def get_correlation_between_defense_systems_and_cluster(response: Response
     try:
         strains_in_cluster = ast.literal_eval(df['combined_index'].values[0])
     except Exception:
-        return Response(content="Error in Value", status_code=400)
+        return Response(content="Gene doesn't exist", status_code=400)
     strains_in_clusters = [int(k) for k in strains_in_cluster.keys()]
     # calculate the distribution
     N = len(list(defense_system['index']))
@@ -225,7 +224,7 @@ async def get_correlation_between_cluster_and_isotype(response: Response,
     try:
         strains_in_cluster = ast.literal_eval(clusters['combined_index'].values[0])
     except Exception:
-        return Response(content="Error in Value", status_code=400)
+        return Response(content="Gene doesn't exist", status_code=400)
     # calculate the distribution
     N = len(list(attributes['index']))
     K_l = attributes.index[attributes['isolation_type'] == isoType.lower()].tolist()
