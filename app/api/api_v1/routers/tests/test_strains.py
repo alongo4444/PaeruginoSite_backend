@@ -18,17 +18,16 @@ def test_get_strain_genes_def_systems_true():
     """
     check if we receive the genes that contains defense system
     """
-    response = client.get("api/v1/strains/strainGenesDefSystems/PA14")
+    response = client.get("api/v1/strains/strainGenesDefSystems/GCF_000404265.1")
     assert response.status_code == 200
 
 
 def test_get_strain_genes_def_systems_false():
     """
-    check if we receive the 400 response because the strain doesn't exist
+    check if we receive the 200 response because the strain doesn't exist (we send back default)
     """
     response = client.get("api/v1/strains/strainGenesDefSystems/PA145")
-    assert response.status_code == 400
-    assert response.content == b'No Results'
+    assert response.status_code == 200
 
 
 def test_get_strains_indexes():
@@ -80,15 +79,72 @@ def test_check_resolution_positive():
     assert res == 0.183 * 300 + 23.672
 
 
-def check_offset_zero():
+def test_check_offset_zero():
     """
     check the internal offset function
     """
-    assert strains.get_offset(0) is "0.03"
+    assert strains.get_offset(0) in "0.03"
 
 
-def check_offset_positive():
+def test_check_offset_positive():
     """
     check the internal offset function
     """
-    assert strains.get_offset(300) is str(-0.0001 * 300 + 0.15)
+    assert strains.get_offset(300) in str(-0.0001 * 300 + 0.15)
+
+
+def test_check_spacing_zero():
+    """
+    check the spacing internal function
+    """
+    assert strains.get_offset(0) in str(0.03)
+
+
+def test_check_spacing_positive():
+    """
+    check the spacing internal function
+    """
+    assert strains.get_offset(300) in str(-0.0001 * 300 + 0.15)
+
+
+def test_check_font_size_zero():
+    """
+    check the font size internal function
+    """
+    assert strains.get_font_size(0) in '100'
+
+
+def test_check_font_size_positive():
+    """
+    check the font size internal function
+    """
+    assert strains.get_font_size(300) in str(0.06 * 300 + 15.958)
+
+
+def test_check_first_layer_offset_zero():
+    """
+    check the first layer offset internal function
+    """
+    assert strains.get_first_layer_offset(0) in str(0.08)
+
+
+def test_check_first_layer_offset_bigger():
+    """
+    check the first layer offset internal function
+    """
+    assert strains.get_first_layer_offset(1101) in str(0.08)
+
+
+def test_check_first_layer_offset_positive():
+    """
+    check the first layer offset internal function
+    """
+    assert strains.get_first_layer_offset(300) in str(0.00000038 * (300 ** 2) - 0.00097175 * 300 + 0.67964847)
+
+
+def test_random_colors():
+    """
+    check the random colors function
+    """
+    res = strains.random_color
+    assert res is not None

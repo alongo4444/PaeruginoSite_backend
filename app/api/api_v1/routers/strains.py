@@ -327,12 +327,25 @@ async def phylogenetic_tree(
 )
 async def strain_circos_graph(strain_name, response: Response):
     # the structure of the dir file will be stain_name.html and it will be stored in a specific directory.
-    strain_file = Path("static/" + strain_name + ".html")
-    if strain_file.is_file():
-        return FileResponse(strain_file, status_code=200)
+    if strain_name:
+        try:
+            split = strain_name.split("(")
+            assembly = split[1][:-1]
+            print(assembly)
+            strain_file = Path("static/Circos/" + assembly + ".html")
+            print(strain_file)
+            if strain_file.is_file():
+                return FileResponse(strain_file, status_code=200)
+            else:
+                return FileResponse(Path("static/Circos/" + "GCF_000404265.1" + ".html"), status_code=200)
+        # if the user inserts a wrong format
+        except Exception:
+            return Response(content="Wrong Parameters", status_code=400)
+    # in the meantime if the file doesn't exist we return a default one
     else:
         # file is not in the directory (the strain name is wrong)
-        return Response(content="No Results", status_code=400)
+        return FileResponse(Path("static/Circos/" + "GCF_000404265.1" + ".html"), status_code=200)
+        # return Response(content="No Results", status_code=400)
 
 
 @r.get(
@@ -341,9 +354,16 @@ async def strain_circos_graph(strain_name, response: Response):
     status_code=200,
 )
 async def get_genes_def_systems(strain_name, response: Response, db=Depends(get_db)):
-    df = get_defense_systems_of_genes(db, strain_name)
-    if df == 'No Results':
-        return Response(content="No Results", status_code=400)
+    if strain_name:
+        try:
+            split = strain_name.split("(")
+            assembly = split[1][:-1]
+            df = get_defense_systems_of_genes(db, assembly)
+            if df == 'No Results':
+                # return Response(content="No Results", status_code=400)
+                df = get_defense_systems_of_genes(db, "GCF_000404265.1")
+        except Exception:
+            df = get_defense_systems_of_genes(db, "GCF_000404265.1")
     return df
 
 

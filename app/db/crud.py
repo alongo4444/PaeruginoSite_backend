@@ -17,97 +17,14 @@ from . import models, schemas
 from app.core.security import get_password_hash
 
 
-def get_user(db: Session, user_id: int):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
-
-
-def get_user_by_email(db: Session, email: str) -> schemas.UserBase:
-    return db.query(models.User).filter(models.User.email == email).first()
-
-
-def get_users(
-        db: Session, skip: int = 0, limit: int = 100
-) -> t.List[schemas.UserOut]:
-    return db.query(models.User).offset(skip).limit(limit).all()
-
-
-def create_user(db: Session, user: schemas.UserCreate):
-    hashed_password = get_password_hash(user.password)
-    db_user = models.User(
-        first_name=user.first_name,
-        last_name=user.last_name,
-        email=user.email,
-        is_active=user.is_active,
-        is_superuser=user.is_superuser,
-        hashed_password=hashed_password,
-    )
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
-
-
-def delete_user(db: Session, user_id: int):
-    user = get_user(db, user_id)
-    if not user:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
-    db.delete(user)
-    db.commit()
-    return user
-
-
-def edit_user(
-        db: Session, user_id: int, user: schemas.UserEdit
-) -> schemas.User:
-    db_user = get_user(db, user_id)
-    if not db_user:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
-    update_data = user.dict(exclude_unset=True)
-
-    if "password" in update_data:
-        update_data["hashed_password"] = get_password_hash(user.password)
-        del update_data["password"]
-
-    for key, value in update_data.items():
-        setattr(db_user, key, value)
-
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
-
-'''
-def get_table_names(db: Session):
-    my_query = "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'"
-    results = db.execute(my_query).fetchall()
-    print(results)
-'''
-
-'''
-def selectedAS_to_query(selectedAS, ss):
-    """
-    prepares the "where" query, gets the selected options from the user and adds it to the field we what to filter by
-    example: selectedAS = ['PAO1', 'PA14'] , ret = 'assembly_x' will return:
-    assembly_x='PAO1' OR assembly_x='PA14'
-    :param selectedAS: the chosen strains from the frontend
-    :param ss:
-    """
-    if not selectedAS:
-        return "1=1"  # if the user didn't select a strain, return all strains
-    for idx, s in enumerate(selectedAS):
-        if idx == 0:
-            ret = ss + "='{}'".format(s)
-        else:
-            ret = ret + " OR {}='{}'".format(ss, s)
-    return ret
-'''
-
 def get_genes_download(db: Session, selectedC, selectedAS):
     selectedC.insert(0, 'locus_tag')
-    cols_attr = [getattr(models.Genes, col) for col in selectedC]
+
+    try:
+        cols_attr = [getattr(models.Genes, col) for col in selectedC]
+    except AttributeError as err:
+        print(err)
+        return pd.DataFrame()
     results = db.query(models.Genes).filter(models.Genes.assembly.in_(selectedAS)).with_entities(*cols_attr).all()
     df_from_records = pd.DataFrame(results, columns=selectedC)
 
@@ -115,6 +32,11 @@ def get_genes_download(db: Session, selectedC, selectedAS):
 
 
 def get_genes(db: Session):
+    """
+    this function return all the the genes that appears in the strains and their genes
+    :param db: the connection to the database
+    :return: dataframe that contains the relevant information
+    """
     # Defining the SQLAlchemy-query
     genes_query = db.query(models.Genes).with_entities(models.Genes.locus_tag,
                                                        models.Genes.assembly,
@@ -166,14 +88,15 @@ def get_strains_index(db: Session):
     return parsed
 
 
-def get_strains(db: Session):
-    result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain, models.Strains.level,
-                                                    models.Strains.gc, models.Strains.size,
-                                                    models.Strains.scaffolds, models.Strains.assembly_refseq,
-                                                    models.Strains.assembly_genbank).all()
-    df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain', 'level', 'gc', 'size', 'scaffolds',
-                                                                 'assembly_refseq', 'assembly'])
-    return df_from_records
+# TODO check if their is a use for this function
+# def get_strains(db: Session):
+#     result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain, models.Strains.level,
+#                                                     models.Strains.gc, models.Strains.size,
+#                                                     models.Strains.scaffolds, models.Strains.assembly_refseq,
+#                                                     models.Strains.assembly_genbank).all()
+#     df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain', 'level', 'gc', 'size', 'scaffolds',
+#                                                                  'assembly_refseq', 'assembly'])
+#     return df_from_records
 
 
 def get_strains_names(db: Session):
@@ -194,6 +117,7 @@ def get_strains_names(db: Session):
     df_from_records = df_from_records.rename(columns={"strain": "name"})
     print(df_from_records.head(5))
     df_from_records['key'] = df_from_records.index
+    df_from_records['name'] = df_from_records['name'] + " (" + df_from_records['key'] + ")"
     result = df_from_records.to_json(orient="records")
     parsed = json.loads(result)
     json.dumps(parsed, indent=4)
@@ -201,37 +125,38 @@ def get_strains_names(db: Session):
     # return df_from_records.to_csv()
 
 
-'''
-this function get all the strains of a certain gene in a cluster
-'''
-
+# for requirement 4.7
 
 def get_strains_cluster(db: Session, strains_genes):
+    """
+    this function return all the the clusters that appears in the strains and their genes
+    :param db: the connection to the database
+    :param strains_genes: the list of the strains and their genes max of 3 min of 1
+    :return: list of the cluster index and the combined_index
+    """
     list_strains = []
     for s_g in strains_genes:
         split = s_g.split('-')
         search = "%{}%".format(split[1])
-        results = db.query(models.Clusters).\
-            with_entities(models.Clusters.index, models.Clusters.combined_index).\
+        results = db.query(models.Clusters). \
+            with_entities(models.Clusters.index, models.Clusters.combined_index). \
             filter(getattr(models.Clusters, split[0].lower()).like(search)).all()
-        # my_query = "SELECT index,combined_index FROM \"Cluster\" WHERE {} LIKE '%{}%'".format(split[0], split[1])
-        # results = db.execute(my_query).fetchall()
-        if (len(results) > 0):
+        if len(results) > 0:
             list_strains.append(results[0])
     return list_strains
 
 
-'''
-this get the strain id and the strain name and isolation type
-'''
-
-
+# for requirement 4.8
 def get_strain_isolation(db: Session):
+    """
+    this function get the strain id and the strain name and isolation type
+    :param db: the connection to the database
+    :return: dataframe that contains the relevant information
+    """
     result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain,
                                                     models.Strains.isolation_type).all()
     df_from_records = pd.DataFrame.from_records(result, index='index', columns=['index', 'strain', 'isolation_type'])
     return df_from_records
-
 
 
 '''
@@ -239,81 +164,47 @@ this get the strain id and the strain name and isolation type and mlst
 '''
 
 
+# for requirement 4.8
 def get_strain_isolation_mlst(db: Session):
+    """
+    this function return the dataframe that contain the columns 'index', 'strain', 'isolation_type', 'MLST'
+    and return all of the rows
+    :param db: the connection to the database
+    :return: dataframe that contains the relevant information
+    """
     result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain,
-                                                    models.Strains.isolation_type,models.Strains.mlst_sequence_type).all()
+                                                    models.Strains.isolation_type,
+                                                    models.Strains.mlst_sequence_type).all()
     df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain', 'isolation_type', 'MLST'])
     return df_from_records
 
 
 
-'''
-this get the strain id and the strain name 
-'''
-
+# for requirement 4.7
 
 def get_strain_id_name(db: Session):
+    """
+    this function return a dataframe that contains the strain id and the strain name
+    :param db: the connection to the database
+    :return: dataframe that contains the relevant information
+    """
     result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain).all()
     df_from_records = pd.DataFrame.from_records(result, index='index', columns=['index', 'strain'])
     return df_from_records
 
 
-'''
-this function used to get all the genes of a certain assembly of a strain  
-'''
-
+# for requirement 4.7
 
 def get_gene_by_strain(db: Session, strain_id):
+    """
+    this function return all genes of a certain strain
+    :param db: the connection to the database
+    :param strain_id: the stain that we want to get all of the genes
+    :return: dataframe of all the the genes of a certain strain
+    """
     results = db.query(models.Genes.locus_tag).filter(models.Genes.assembly == strain_id).all()
-    # my_query = "SELECT locus_tag FROM \"Genes\" WHERE assembly = '{}'".format(strain_id)
-    # results = db.execute(my_query).fetchall()
     return results
 
-
-def parse_circos_html(html_file):
-    with open(html_file, encoding='utf8') as infile:
-        html = BeautifulSoup(infile, "html.parser")
-
-    res_dict = {}
-
-    head_tag = html.head
-
-    head_scripts = head_tag.find_all('script')
-
-    lhs = []
-    for hs in head_scripts:
-        lhs.append(hs.string.strip('\n'))
-
-    res_dict['head'] = lhs
-
-    # body_tag = html.body
-    #
-    # body_tags = body_tag.find_all()
-    #
-    # btgs = []
-    # for bgs in body_tags:
-    #     btgs.append(bgs.stripped_strings)
-    #
-    # res_dict['body'] = btgs
-
-    return res_dict
-
-# prepares the "where" query, gets the selected options from the user and adds it to the field we what to filter by
-#
-# example: selectedAS = ['PAO1', 'PA14'] , ret = 'assembly_x' will return:
-#   assembly_x='PAO1' OR assembly_x='PA14'
-'''
-def selectedAS_to_query_contains_str(selectedAS):
-    ss = "defense_system LIKE "
-    if not selectedAS:
-        return "1=1"  # if the user didn't select a defense system, return all genes
-    for idx, s in enumerate(selectedAS):
-        if idx == 0:
-            ret = ss + "'%{}%'".format(s)
-        else:
-            ret = ret + " OR " + ss + "'%{}%'".format(s)
-    return ret
-'''
 
 # returns a dataframe with the genes information of the system defenses in selectedAS with the columns in selectedC.
 def get_genes_by_defense(db: Session, selectedC, selectedAS):
@@ -326,8 +217,8 @@ def get_genes_by_defense(db: Session, selectedC, selectedAS):
     genes_ds = []
     for s in selectedAS:
         search = "%{}%".format(s)
-        results = db.query(models.GenesDefenseSystems).\
-            with_entities(models.GenesDefenseSystems.locus_tag).\
+        results = db.query(models.GenesDefenseSystems). \
+            with_entities(models.GenesDefenseSystems.locus_tag). \
             filter(models.GenesDefenseSystems.defense_system.like(search)).all()
         # my_query = "SELECT full_locus FROM \"Genes_Defence_Systems\" WHERE defense_system LIKE '%{}%'".format(s)
         # results = db.execute(my_query).fetchall()
@@ -347,8 +238,11 @@ def get_genes_by_defense(db: Session, selectedC, selectedAS):
     #     selectedC_copy[idx] = "\"" + s + "\""
     selectedC.insert(0, 'locus_tag')
     selectedC_copy.insert(0, "locus_tag")
-    cols = ', '.join(selectedC_copy)
-    cols_attr = [getattr(models.Genes, item) for item in selectedC_copy]
+    try:
+        cols_attr = [getattr(models.Genes, item) for item in selectedC_copy]
+    except AttributeError as err:
+        print(err)
+        return pd.DataFrame()
     results = db.query(models.Genes).with_entities(*cols_attr).all()
     # my_query = "SELECT {} FROM \"Genes\"".format(cols)  # Get all genes
     # results = db.execute(my_query).fetchall()
@@ -394,10 +288,11 @@ def get_defense_systems_of_genes(db: Session, strain_name):
     return df
 
 
-def value_loc(value, df):
-    for col in list(df):
-        if df[col].values.find(value) != -1:
-            return (list(df).index(col), df[col][df[col].find(value) != -1].index[0])
+# TODO ido put this on # no usages need to check
+# def value_loc(value, df):
+#     for col in list(df):
+#         if df[col].values.find(value) != -1:
+#             return (list(df).index(col), df[col][df[col].find(value) != -1].index[0])
 
 
 def get_genes_by_cluster(db: Session, genes):
@@ -408,7 +303,7 @@ def get_genes_by_cluster(db: Session, genes):
                                                       ).all()
     # my_query = "SELECT * FROM \"Cluster\""
     # results = db.execute(my_query)
-    col_names = ['index','pa14','pao1','combined_index']
+    col_names = ['index', 'pa14', 'pao1', 'combined_index']
     df_from_records = pd.DataFrame.from_records(results, columns=col_names)
     first_column = df_from_records.columns[0]
     last_column = df_from_records.columns[-1]
@@ -471,14 +366,18 @@ def get_genes_by_cluster(db: Session, genes):
         # df_from_records_all_genes['locus_tag'] = df_from_records_all_genes['locus_tag'].apply(lambda x: remove_old_locus_string(x))
         # frames.append(df_from_records_g.merge(df_from_records_all_genes))
 
-    return pd.concat(
-        frames).drop_duplicates()  # return a single dataframe with all of the genes info in the same cluster
+    if len(frames) > 0:
+        return pd.concat(
+            frames).drop_duplicates()  # return a single dataframe with all of the genes info in the same cluster
+
+    return pd.DataFrame()
 
 
-def remove_old_locus_string(s):
-    if s:
-        return s.replace('old_locus_tag=', '')
-    return s
+# TODO IDO PUT THIS ON # NO USAGE
+# def remove_old_locus_string(s):
+#     if s:
+#         return s.replace('old_locus_tag=', '')
+#     return s
 
 
 # for requirement 4.5
@@ -497,6 +396,10 @@ def get_defense_systems_of_two_strains(db: Session, first_strain_name, second_st
                        getattr(models.StrainsDefenseSystems, cols[2])) \
         .all()
     df = pd.DataFrame.from_records(query, columns=['index', first_strain_name.lower(), second_strain_name.lower()])
+    if df.empty:
+        return "No Results"
+    # else:
+    #     df = df.to_dict('records')
     return df
 
 
@@ -536,9 +439,9 @@ def get_all_strains_of_defense_system(db: Session, defense_system):
     :return: dataframe that contains the relevant information
     """
     cols = ['index', defense_system.lower()]
-    query = db.query(models.StrainsDefenseSystems)\
+    query = db.query(models.StrainsDefenseSystems) \
         .with_entities(getattr(models.StrainsDefenseSystems, cols[0]),
-                       getattr(models.StrainsDefenseSystems, cols[1]),)                       \
+                       getattr(models.StrainsDefenseSystems, cols[1]), ) \
         .all()
     df = pd.DataFrame.from_records(query, columns=['index', defense_system.lower()])
     if df.empty:
@@ -555,9 +458,9 @@ def get_strain_column_data(db: Session, category_name):
     :return: dataframe that contains the relevant information
     """
     cols = ['index', category_name.lower()]
-    query = db.query(models.Strains)\
+    query = db.query(models.Strains) \
         .with_entities(getattr(models.Strains, cols[0]),
-                       getattr(models.Strains, cols[1]),).all()
+                       getattr(models.Strains, cols[1]), ).all()
     df = pd.DataFrame.from_records(query, columns=['index', category_name.lower()])
     if df.empty:
         return "No Results"
@@ -574,20 +477,24 @@ def dict_of_clusters_related_to_gene(db: Session, strain, gene):
     :return: dataframe that contains the relevant information
     """
     search = "%{}%".format(gene)
-    query = db.query(models.Clusters)\
+    query = db.query(models.Clusters) \
         .with_entities(models.Clusters.index, getattr(models.Clusters, strain.lower()),
-                       models.Clusters.combined_index).filter(getattr(models.Clusters, strain.lower()).like(search)).all()
+                       models.Clusters.combined_index).filter(
+        getattr(models.Clusters, strain.lower()).like(search)).all()
     df = pd.DataFrame.from_records(query, columns=['index', strain.lower(), 'combined_index'])
     if df.empty:
         return "No Results"
     return df
 
-'''
-this get the strain id and the strain name with the MLST metadata
-'''
 
+# For the browse in the phylogenetic tree
 def get_strains_MLST(db: Session):
-    result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain,models.Strains.mlst_sequence_type).all()
+    """
+    the function return the strain id and the strain name with the MLST metadata in a dataframe
+    for the browse in the phylogenetic tree
+    """
+    result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain,
+                                                    models.Strains.mlst_sequence_type).all()
     df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain', 'MLST'])
     return df_from_records
 
@@ -599,7 +506,7 @@ def get_colors_dict(db: Session):
     :return: dictionary of colors
     """
     result = db.query(models.DefenseSystems).with_entities(models.DefenseSystems.name, models.DefenseSystems.label,
-                                                   models.DefenseSystems.color).all()
+                                                           models.DefenseSystems.color).all()
     df_from_records = pd.DataFrame.from_records(result, columns=['label', 'value', 'color'])
     if df_from_records.empty:
         return "No Results"
