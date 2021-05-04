@@ -3,7 +3,7 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_check_get_iso_types_true():
+def test_CheckIsoType():
     """
     checks the endpoint of the isolation type
     """
@@ -11,7 +11,7 @@ def test_check_get_iso_types_true():
     assert response.status_code == 200
 
 
-def test_check_get_attributes_true():
+def test_AttributesStrains():
     """
     checks the endpoint of the isolation type
     """
