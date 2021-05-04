@@ -14,7 +14,7 @@ from sqlalchemy.sql import select
 from starlette.responses import StreamingResponse
 
 from . import models, schemas
-from app.core.security import get_password_hash
+#from app.core.security import get_password_hash
 
 
 def get_genes_download(db: Session, selectedC, selectedAS):
