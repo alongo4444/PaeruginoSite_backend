@@ -14,3 +14,4 @@
 /.idea/inspectionProfiles/Project_Default.xml
 /app/core/security.py
 /.idea/vcs.xml
+.env
