@@ -3,7 +3,7 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_check_get_defense_systems_names_true():
+def test_GetDefenseSystemsNames():
     """
     checks the endpoint of the defense systems names
     """
