@@ -214,6 +214,7 @@ def test_get_strains_MLST_true():
 
 
 def test_get_colors_dict_true():
+
     """
     check if the function returns a dictionary of colors from the db
     """
