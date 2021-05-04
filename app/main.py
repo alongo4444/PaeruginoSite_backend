@@ -12,7 +12,7 @@ from app.api.api_v1.routers.statistics import statistics_router
 
 from app.core import config
 from app.db.session import SessionLocal
-from app.core.celery_app import celery_app
+#from app.core.celery_app import celery_app
 # from app import tasks
 #from app.api.api_v1.routers.users import users_router
 #from app.api.api_v1.routers.auth import auth_router
@@ -43,11 +43,11 @@ async def db_session_middleware(request: Request, call_next):
     return response
 
 
-@app.get("/api/v1/tables")
-async def example_task():
-    #request.state.db
-
-    return {"message": "success"}
+# @app.get("/api/v1/tables")
+# async def example_task():
+#     #request.state.db
+#
+#     return {"message": "success"}
 
 
 # Routers
