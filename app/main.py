@@ -10,9 +10,7 @@ from app.api.api_v1.routers.strains import strains_router
 from app.api.api_v1.routers.defense_systems import defense_systems_router
 from app.api.api_v1.routers.statistics import statistics_router
 from boto.s3.connection import S3Connection
-from app.core import config
 from app.db.session import SessionLocal
-from app.core.celery_app import celery_app
 from app.api.api_v1.routers.cluster import cluster_router
 import os
 from dotenv import load_dotenv

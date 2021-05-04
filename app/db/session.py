@@ -5,8 +5,6 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-from app.core import config
-
 engine = create_engine(
     os.getenv('SQLALCHEMY_DATABASE_URI',None),
     # "postgresql+psycopg2://postgres:u54pc3td@localhost:5432/PaeruginosaDB"
