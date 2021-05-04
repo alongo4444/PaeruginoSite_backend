@@ -13,26 +13,34 @@ from pathlib import Path
 from typing import List, Optional
 from sorting_techniques import pysort
 import hashlib
-import json
 from pathlib import Path
 
 strains_router = r = APIRouter()
 
 
 def validate_params(systems, subtree, strains, db_systems):
+    """
+    this function gets the user parameters of systems and subtrees and keep only
+    the arguments that saved in the db. otherwise - deletes from the parameters the bad values.
+    systems - list of defence systems
+    subtree - list of strains to show
+    strains - strains that saved in the db
+    db_systems - defence systems that saved in the db
+    return:
+        systems - cleared list of defence systems after deleting bad values
+        subtree - cleared list of strains after deleting bad values
+    """
     all_sys = [x['name'] for x in db_systems]
     systems = [sys for sys in systems if sys in all_sys]
     subtree = [strain for strain in subtree if strain in strains['index']]
     return systems, subtree
 
 
-def random_color():
-    ## this method generate a random color in hex form
-    rand = lambda: np.random.randint(100, 255)
-    return '#%02X%02X%02X' % (rand(), rand(), rand())
-
-
 def get_first_layer_offset(x):
+    """
+    this function calculate the first layer offset of the phylogenetic tree via
+    a non-linear regression function based on trial and error
+    """
     if x > 1100 or x == 0:
         return str(0.08)
     return str(0.00000038 * (x ** 2) - 0.00097175 * x + 0.67964847)
@@ -49,8 +57,8 @@ def get_font_size(x):
 
 def get_spacing(x):
     """
-   this function gets the number of strains the user want to show and return compatible spacing in legend of graph
-   """
+     this function gets the number of strains the user want to show and return compatible spacing in legend of graph
+    """
     if (x == 0):
         return str(2)
     return str(0.001162 * x + 0.311)
@@ -58,8 +66,8 @@ def get_spacing(x):
 
 def get_offset(x):
     """
-       this function gets the number of strains the user want to show and return compatible offset (spacing) between layers
-       """
+    this function gets the number of strains the user want to show and return compatible offset (spacing) between layers
+    """
     if (x == 0):
         return str(0.03)
     return str(-0.0001 * x + 0.15)
@@ -67,8 +75,8 @@ def get_offset(x):
 
 def get_resolution(x):
     """
-           this function gets the number of strains the user want to show and return compatible graph resolution
-           """
+    this function gets the number of strains the user want to show and return compatible graph resolution
+    """
     if (x == 0):
         return 300
     return 0.183 * x + 23.672
@@ -149,6 +157,12 @@ async def phylogenetic_tree(
     the function gets 2 arrays: one for the defense systems and needs to be shows and another to
     subtrees the user might need. if they are empty: the system will show full tree with no defense systems
     on it. this function also generate Dynamic R script in order to generate the tree.
+    systems - list of defence systems from front-end input
+    subtree - list of strains from front-end input
+    MLST - flag that indicates if MLST branch-coloring is needed (from front-end input)
+    db - and object of the DB
+    return:
+        png file in case the phylogenetic tree successfully created and 400 response status otherwise.
     """
     # validate parameters using DB pre-defined strains and def-systems
     strains = get_strain_isolation_mlst(db)
@@ -298,11 +312,11 @@ async def phylogenetic_tree(
             print("dbc2csv - Error converting file: phylo_tree.R")
             print(e)
 
-            raise HTTPException(status_code=404, detail=e)
+            raise HTTPException(status_code=400, detail=e)
     else:
         return FileResponse('static/def_Sys/' + filename + ".png")
 
-    raise HTTPException(status_code=404, detail="e")
+    raise HTTPException(status_code=400, detail="e")
 
 
 @r.get(
