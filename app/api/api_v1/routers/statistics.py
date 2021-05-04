@@ -81,7 +81,7 @@ async def get_correlation_between_defense_systems_and_attribute(response: Respon
     attributes = get_strain_column_data(db, category)
     system = renameDefColumn(system)
     defense_system = get_all_strains_of_defense_system(db, system)
-    if defense_system == 'No Results' or attributes == "No Results":
+    if defense_system is "No Results" or attributes is "No Results":
         return Response(content="No Results", status_code=400)
     combined = pd.merge(attributes, defense_system, on="index")
     try:
@@ -144,7 +144,7 @@ async def get_correlation_between_defense_systems_and_iso_type(response: Respons
     attributes = get_strain_column_data(db, 'isolation_type')
     system = renameDefColumn(system)
     defense_system = get_all_strains_of_defense_system(db, system)
-    if defense_system == 'No Results' or attributes == "No Results":
+    if defense_system is "No Results" or attributes is "No Results":
         return Response(content="No Results", status_code=400)
     combined = pd.merge(attributes, defense_system, on="index").fillna("")
     # calculate the distribution
@@ -180,7 +180,7 @@ async def get_correlation_between_defense_systems_and_cluster(response: Response
     clusters = dict_of_clusters_related_to_gene(db, strain, gene)
     system = renameDefColumn(system)
     defense_system = get_all_strains_of_defense_system(db, system)
-    if clusters == "No Results" or defense_system == "No Results":
+    if clusters is "No Results" or defense_system is "No Results":
         return Response(content="No Results", status_code=400)
     df = dict_of_clusters_related_to_gene(db, strain, gene)
     try:
@@ -219,7 +219,7 @@ async def get_correlation_between_cluster_and_isotype(response: Response,
         return Response(content="Strain doesn't exist", status_code=400)
     clusters = dict_of_clusters_related_to_gene(db, strain, gene)
     attributes = get_strain_column_data(db, 'isolation_type')
-    if clusters == "No Results" or attributes == "No Results":
+    if clusters is "No Results" or attributes is "No Results":
         return Response(content="No Results", status_code=400)
     try:
         strains_in_cluster = ast.literal_eval(clusters['combined_index'].values[0])
