@@ -68,7 +68,7 @@ def test_CorrelationTwoDefSystemEmptyValueFalse():
     """
     check how the system handles two missing values in the query params
     """
-    response = client.get("api/v1/statistics/correlationBetweenDefenseSystems?")
+    response = client.get("api/v1/statistics/correlationBetweenDefenseSystems")
     assert response.status_code == 400
     assert response.content == b"Wrong number of parameters"
 

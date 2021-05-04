@@ -34,7 +34,6 @@ async def get_correlation_between_defense_systems(response: Response,
                                                   systems: List[str] = Query([]),
                                                   db=Depends(get_db)):
 
-
     names_of_def_systems = get_defense_systems_names(db, True)
     if len(systems) != 2:
         return Response(content="Wrong number of parameters", status_code=400)
