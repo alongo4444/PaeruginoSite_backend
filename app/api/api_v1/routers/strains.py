@@ -182,9 +182,11 @@ async def phylogenetic_tree(
     filename = filenameHash.hexdigest()
 
     # check if such query allready computed and return it. else, compute new given query.
-    if not os.path.exists('static/def_Sys/' + filename + ".png"):
+    # if not os.path.exists('static/def_Sys/' + filename + ".png"):
+    if not os.path.exists(filename + ".png"):
         # prepare POPEN variables needed
-        command = 'C:/Program Files/R/R-4.0.3/bin/Rscript.exe'
+        # command = 'C:/Program Files/R/R-4.0.3/bin/Rscript.exe'
+        command = 'Rscript'
         # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
         arg = '--vanilla'
         # data preprocessing for the R query
@@ -196,7 +198,8 @@ async def phylogenetic_tree(
             systems = strains.loc[strains['Defense_sys'].isin(systems)]['Defense_sys'].unique().tolist() if len(
                 systems) > 0 else []
         strains = pd.get_dummies(strains, columns=["Defense_sys"])
-        strains.to_csv("static/def_Sys/Defense_sys.csv")
+        strains.to_csv("Defense_sys.csv")
+        # strains.to_csv("static/def_Sys/Defense_sys.csv")
 
         # R query build-up
         query = """
@@ -288,25 +291,28 @@ async def phylogenetic_tree(
             dat1$index <- as.character(dat1$index)
             tree <- full_join(tree, dat1, by = c("label" = "index"))
             p <- p %<+% dat1  + geom_tiplab(show.legend=FALSE,aes(label=strain))
-            png(""" + '"' + myPath + '/' + filename + """.png", units="cm", width=""" + str(
+            png(""" + '"' + filename + """.png", units="cm", width=""" + str(
             resolution) + """, height=""" + str(resolution) + """, res=100)
             plot(p)
             dev.off(0)"""
 
         # for debugging purpose and error tracking
         print(query)
-        f = open("static/def_Sys/" + filename + ".R", "w")
+        # f = open("static/def_Sys/" + filename + ".R", "w")
+        f = open(filename + ".R", "w")
         f.write(query)
         f.close()
 
         # Execute R query
         try:
-            p = subprocess.Popen([command, arg, os.path.abspath("static/def_Sys/" + filename + ".R")],
+            # p = subprocess.Popen([command, arg, os.path.abspath("static/def_Sys/" + filename + ".R")],
+            p = subprocess.Popen([command, arg, os.path.abspath(filename + ".R")],
                                  cwd=os.path.normpath(os.getcwd() + os.sep + os.pardir), stdin=subprocess.PIPE,
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             output, error = p.communicate()
-            return FileResponse('static/def_Sys/' + filename + ".png")
+            # return FileResponse('static/def_Sys/' + filename + ".png")
+            return FileResponse(filename + ".png")
 
         except Exception as e:
             print("dbc2csv - Error converting file: phylo_tree.R")
@@ -314,7 +320,8 @@ async def phylogenetic_tree(
 
             raise HTTPException(status_code=400, detail=e)
     else:
-        return FileResponse('static/def_Sys/' + filename + ".png")
+        # return FileResponse('static/def_Sys/' + filename + ".png")
+        return FileResponse(filename + ".png")
 
     raise HTTPException(status_code=400, detail="e")
 
