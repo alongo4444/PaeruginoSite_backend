@@ -3,7 +3,6 @@ import subprocess, os
 import pandas as pd
 from fastapi.responses import FileResponse
 from app.db.session import get_db
-from app.static.def_Sys.colors import dict_color
 from app.db.crud import (
     get_strain_isolation_mlst, get_strains_names, get_defense_systems_of_genes, get_strains_index,
     get_defense_systems_names, get_colors_dict
