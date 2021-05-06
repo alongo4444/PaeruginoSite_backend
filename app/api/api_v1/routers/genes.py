@@ -44,7 +44,7 @@ async def download_genes(
     genes = get_genes_download(db, selectedC, selectedAS)
 
     if genes.empty:
-        return Response(content="Validation error", status_code=422)
+        return Response(content="One or more of the parameters is invalid", status_code=400)
 
     return prepare_csv_file(genes)
 
@@ -64,7 +64,7 @@ async def genes_by_defense(
     # This is necessary for react-admin to work
     # response.headers["Content-Range"] = f"0-9/{len(users)}"
     if genes_by_defense.empty:
-        return Response(content="Validation error", status_code=422)
+        return Response(content="One or more of the parameters is invalid", status_code=400)
 
     return prepare_csv_file(genes_by_defense)
 
@@ -90,7 +90,7 @@ async def genes_by_cluster(
     # response.headers["Content-Range"] = f"0-9/{len(users)}"
 
     if genes_by_cluster.empty:
-        return Response(content="Validation error", status_code=422)
+        return Response(content="One or more of the parameters is invalid", status_code=400)
 
     if csv:
         genes_by_cluster = genes_by_cluster.drop(columns=['protein_sequence', 'dna_sequence'])
