@@ -24,11 +24,11 @@ def test_DownloadGenesFalse():
     """
     # col not exist
     response = client.get("/api/v1/genes/download_genes?selectedC=start&selectedC=e&selectedAS=GCF_000014625.1")
-    assert response.status_code == 422
+    assert response.status_code == 400
 
     # gene not exist
     response = client.get("/api/v1/genes/download_genes?selectedC=start&selectedC=end&selectedAS=GCF_0000146")
-    assert response.status_code == 422
+    assert response.status_code == 400
 
 
 def test_DownloadDefenseSystemsTrue():
@@ -48,11 +48,11 @@ def test_DownloadDefenseSystemsFalse():
     """
     # col not exist
     response = client.get("/api/v1/genes/genes_by_defense?selectedC=start&selectedC=e&selectedAS=abi")
-    assert response.status_code == 422
+    assert response.status_code == 400
 
     # defense system not exist
     response = client.get("/api/v1/genes/genes_by_defense?selectedC=start&selectedC=end&selectedAS=nonExist")
-    assert response.status_code == 422
+    assert response.status_code == 400
 
 
 def test_DownloadGenesByClusterTrue():
@@ -69,7 +69,7 @@ def test_DownloadGenesByClusterFalse():
     check the download cluster endpoint column doesn't exist
     """
     response = client.get("/api/v1/genes/genes_by_cluster?genes=dhfgh&csv=false&prot=true")
-    assert response.status_code == 422
+    assert response.status_code == 400
 
 
 def test_GetGenesTrue():
