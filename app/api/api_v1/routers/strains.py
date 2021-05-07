@@ -102,8 +102,8 @@ def load_def_systems_names():
     this function reads the defense systems names from the DB and save it in dictionary
     for layer coloring
     """
-    db = next(get_db())
-    defense_names = get_defense_systems_names(db, True)
+    def_dict = load_colors()
+    defense_names =def_dict.keys()
     return list(defense_names)
 
 # sorting object
@@ -153,7 +153,7 @@ async def phylogenetic_tree(
 ):
     """
     this function handles all requests to generate Phylogenetic tree from browse page in the website.
-    the function gets 2 arrays: one for the defense systems and needs to be shows and another to
+    the function gets 2 arrays: one for  the defense systems and needs to be shows and another to
     subtrees the user might need. if they are empty: the system will show full tree with no defense systems
     on it. this function also generate Dynamic R script in order to generate the tree.
     systems - list of defence systems from front-end input
@@ -165,7 +165,7 @@ async def phylogenetic_tree(
     """
     # validate parameters using DB pre-defined strains and def-systems
     strains = get_strain_isolation_mlst(db)
-    db_systems = get_defense_systems_names(db)
+    db_systems = load_def_systems_names()
     systems, subtree = validate_params(systems, subtree, strains, db_systems)
 
     # generating filename
