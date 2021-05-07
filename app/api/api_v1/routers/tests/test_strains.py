@@ -140,11 +140,3 @@ def test_check_first_layer_offset_positive():
     check the first layer offset internal function
     """
     assert strains.get_first_layer_offset(300) in str(0.00000038 * (300 ** 2) - 0.00097175 * 300 + 0.67964847)
-
-
-def test_random_colors():
-    """
-    check the random colors function
-    """
-    res = strains.random_color
-    assert res is not None
