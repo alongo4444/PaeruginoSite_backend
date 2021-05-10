@@ -25,7 +25,10 @@ def get_genes_download(db: Session, selectedC, selectedAS):
     except AttributeError as err:
         print(err)
         return pd.DataFrame()
-    results = db.query(models.Genes).filter(models.Genes.assembly.in_(selectedAS)).with_entities(*cols_attr).all()
+    if(selectedAS):
+        results = db.query(models.Genes).filter(models.Genes.assembly.in_(selectedAS)).with_entities(*cols_attr).all()
+    else:
+        results = db.query(models.Genes).with_entities(*cols_attr).all()
     df_from_records = pd.DataFrame(results, columns=selectedC)
 
     return df_from_records
