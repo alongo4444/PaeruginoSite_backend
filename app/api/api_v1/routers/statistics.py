@@ -81,7 +81,7 @@ async def get_correlation_between_defense_systems_and_attribute(response: Respon
     attributes = get_strain_column_data(db, category)
     system = renameDefColumn(system)
     defense_system = get_all_strains_of_defense_system(db, system)
-    if defense_system is 'No Results' or attributes is "No Results":
+    if defense_system is "No Results" or attributes is "No Results":
         return Response(content="No Results", status_code=400)
     combined = pd.merge(attributes, defense_system, on="index")
     try:
@@ -144,7 +144,7 @@ async def get_correlation_between_defense_systems_and_iso_type(response: Respons
     attributes = get_strain_column_data(db, 'isolation_type')
     system = renameDefColumn(system)
     defense_system = get_all_strains_of_defense_system(db, system)
-    if defense_system is 'No Results' or attributes is "No Results":
+    if defense_system is "No Results" or attributes is "No Results":
         return Response(content="No Results", status_code=400)
     combined = pd.merge(attributes, defense_system, on="index").fillna("")
     # calculate the distribution
