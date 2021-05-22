@@ -11,12 +11,14 @@ import subprocess, os
 import pandas as pd
 from fastapi.responses import FileResponse
 from app.api.api_v1.routers.strains import (
-    get_first_layer_offset, get_resolution
+    get_first_layer_offset, get_resolution, load_def_systems_names
 )
 import itertools
+import numpy as np
 
 sortObj = pysort.Sorting()  # sorting object
 defense_systems_router = r = APIRouter()
+def_sys = load_def_systems_names()
 
 
 def get_systems_counts(strains):
@@ -53,7 +55,7 @@ async def get_triplets(response: Response, db=Depends(get_db)):
     """
     df = get_colors_dict(db)  # get defense systems.
     names = [x['label'] for x in df]  # fetch systems names
-    triplets = list(itertools.combinations(names, 3))  # split to triplets
+    triplets = list(itertools.combinations(np.random.choice(names, 6, replace=False), 3))  # split to triplets
 
     return triplets
 
@@ -68,7 +70,7 @@ async def distinct_count(
         db=Depends(get_db),
 ):
     # validate parameters and R code injection
-    strains = pd.read_csv("static/def_Sys/Defense_sys.csv")
+    strains = get_strain_isolation_mlst(db)
     subtree = validate_params(subtree, strains)
     # generating filename
     myPath = str(Path().resolve()).replace('\\', '/') + '/static/distinct_sys'
@@ -86,13 +88,17 @@ async def distinct_count(
         # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
         arg = '--vanilla'
         # data preprocessing for the R query
+        strains['Defense_sys'] = np.random.choice(def_sys, strains.shape[
+            0])  # todo remove when defense systems are uploaded to db
+        if len(subtree) > 0:
+            strains = strains.loc[strains['index'].isin(subtree)]
+        strains = pd.get_dummies(strains, columns=["Defense_sys"])
         strains = get_systems_counts(strains)
         strains.to_csv('static/distinct_sys/count.csv')
 
         # R query build-up
         query = """
                         library(ggtreeExtra)
-                        ##library(ggstar)
                         library(ggplot2)
                         library(ggtree)
                         library(treeio)
@@ -107,9 +113,7 @@ async def distinct_count(
                     subtree =c(""" + ",".join('"' + str(x) + '"' for x in subtreeSort) + """)
                     tree <- keep.tip(tree,subtree)
                     """
-        query = query + """
-                 dat1 <- read.csv('""" + myPath + """/count.csv')
-                    """
+        query = query + load_systems_data(myPath)
         if MLST is True:
             query = query + """
                 # For the clade group
@@ -127,18 +131,7 @@ async def distinct_count(
                         p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5)
                                 """
 
-        query = query + """p <- p +
-                          geom_fruit(
-                            data=dat1,
-                            geom=geom_bar,
-                            mapping=aes(y=index,x=count),
-                            orientation="y",
-                            width=1,
-                            pwidth=0.05,
-                            offset = """ + get_first_layer_offset(len(subtreeSort)) + """,
-                            stat="identity",
-                          )
-                          """
+        query = query + load_systems_layer(subtreeSort)
 
         resolution = get_resolution(len(subtreeSort))
         query = query + """
@@ -174,3 +167,24 @@ async def distinct_count(
         return FileResponse('static/distinct_sys/' + filename + ".png")
 
     raise HTTPException(status_code=404, detail="e")
+
+
+def load_systems_data(myPath):
+    return """
+             dat1 <- read.csv('""" + myPath + """/count.csv')
+          """
+
+
+def load_systems_layer(subtreeSort):
+    return """p <- p +
+                              geom_fruit(
+                                data=dat1,
+                                geom=geom_bar,
+                                mapping=aes(y=index,x=count),
+                                orientation="y",
+                                width=1,
+                                pwidth=0.05,
+                                offset = """ + get_first_layer_offset(len(subtreeSort)) + """,
+                                stat="identity",
+                              )
+                              """
