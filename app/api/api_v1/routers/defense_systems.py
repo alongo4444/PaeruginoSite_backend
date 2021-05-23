@@ -10,8 +10,9 @@ import hashlib
 import subprocess, os
 import pandas as pd
 from fastapi.responses import FileResponse
-from app.api.api_v1.routers.strains import (
-    get_first_layer_offset, get_resolution, load_def_systems_names
+from app.utilities.utilities import (
+    validate_params, get_first_layer_offset, get_font_size, get_spacing, get_offset, get_resolution, load_colors,
+    load_def_systems_names, get_systems_counts
 )
 import itertools
 import numpy as np
@@ -19,14 +20,7 @@ import numpy as np
 sortObj = pysort.Sorting()  # sorting object
 defense_systems_router = r = APIRouter()
 def_sys = load_def_systems_names()
-
-
-def get_systems_counts(strains):
-    str_columns = ['index', 'strain', 'isolation_type', 'MLST']
-    columns = [column for column in strains.columns if column not in str_columns]
-    strains['count'] = strains.apply(lambda x: x[columns].tolist().count(1), axis=1)
-    return strains
-
+myPath = str(Path().resolve()).replace('\\', '/') + '/static/distinct_sys'
 
 def validate_params(subtree, strains):
     subtree = [strain for strain in subtree if strain in strains['index']]
@@ -73,7 +67,6 @@ async def distinct_count(
     strains = get_strain_isolation_mlst(db)
     subtree = validate_params(subtree, strains)
     # generating filename
-    myPath = str(Path().resolve()).replace('\\', '/') + '/static/distinct_sys'
     subtreeSort = []
     if len(subtree) > 0:
         subtreeSort = sortObj.radixSort(subtree)
@@ -88,14 +81,7 @@ async def distinct_count(
         # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
         arg = '--vanilla'
         # data preprocessing for the R query
-        strains['Defense_sys'] = np.random.choice(def_sys, strains.shape[
-            0])  # todo remove when defense systems are uploaded to db
-        if len(subtree) > 0:
-            strains = strains.loc[strains['index'].isin(subtree)]
-        strains = pd.get_dummies(strains, columns=["Defense_sys"])
-        strains = get_systems_counts(strains)
-        strains.to_csv('static/distinct_sys/count.csv')
-
+        preprocessing_avg_systems(strains, subtree)
         # R query build-up
         query = """
                         library(ggtreeExtra)
@@ -113,7 +99,7 @@ async def distinct_count(
                     subtree =c(""" + ",".join('"' + str(x) + '"' for x in subtreeSort) + """)
                     tree <- keep.tip(tree,subtree)
                     """
-        query = query + load_systems_data(myPath)
+        query = query + load_avg_systems_data(myPath)
         if MLST is True:
             query = query + """
                 # For the clade group
@@ -131,7 +117,7 @@ async def distinct_count(
                         p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5)
                                 """
 
-        query = query + load_systems_layer(subtreeSort)
+        query = query + load_avg_systems_layer(subtreeSort)
 
         resolution = get_resolution(len(subtreeSort))
         query = query + """
@@ -169,22 +155,34 @@ async def distinct_count(
     raise HTTPException(status_code=404, detail="e")
 
 
-def load_systems_data(myPath):
+def load_avg_systems_data():
     return """
-             dat1 <- read.csv('""" + myPath + """/count.csv')
+             dat3 <- read.csv('""" + myPath + """/count.csv')
           """
 
 
-def load_systems_layer(subtreeSort):
+def load_avg_systems_layer(subtreeSort,layer):
+    offset = get_first_layer_offset(len(subtreeSort)) if layer ==0 else get_offset(len(subtreeSort))
     return """p <- p +
                               geom_fruit(
-                                data=dat1,
+                                data=dat3,
                                 geom=geom_bar,
                                 mapping=aes(y=index,x=count),
                                 orientation="y",
                                 width=1,
                                 pwidth=0.05,
-                                offset = """ + get_first_layer_offset(len(subtreeSort)) + """,
+                                offset = """ + offset + """,
                                 stat="identity",
                               )
                               """
+
+
+def preprocessing_avg_systems(strains, subtree):
+    strains['Defense_sys'] = np.random.choice(def_sys, strains.shape[
+        0])  # todo remove when defense systems are uploaded to db
+    if len(subtree) > 0:
+        strains = strains.loc[strains['index'].isin(subtree)]
+    strains = pd.get_dummies(strains, columns=["Defense_sys"])
+    strains = get_systems_counts(strains)
+    strains.to_csv('static/distinct_sys/count.csv')
+    return strains

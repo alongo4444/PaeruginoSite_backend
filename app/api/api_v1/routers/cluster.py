@@ -11,7 +11,9 @@ from fastapi import APIRouter, Query, Depends, Response, HTTPException
 from sorting_techniques import pysort
 from starlette.responses import FileResponse
 
-from app.api.api_v1.routers.strains import get_offset, get_font_size, get_spacing, get_resolution, get_first_layer_offset
+from app.utilities.utilities import (
+    validate_params,get_first_layer_offset,get_font_size,get_spacing,get_offset,get_resolution
+)
 from app.db.crud import (
     get_strains_cluster, get_strain_id_name, get_strains_MLST, get_gene_by_strain
 )
@@ -37,7 +39,7 @@ def get_query_cluster(list_strains, list_strain_gene, subtreeSort):
                                         orientation="y",
                                         width=1,
                                         pwidth= 0.08,
-                                        offset = """ + get_offset(len(list_strains)) + """,
+                                        offset = """ + get_first_layer_offset(len(subtreeSort)) + """,
                                         stat="identity",
                                         fill='red'
                                       ) + theme(
@@ -107,20 +109,7 @@ def get_csv_cluster():
 
 def preprocess_cluster(db, list_strain_gene, subtree, MLST):
     list_strains = get_strains_cluster(db, list_strain_gene)
-    cluster_ids = ""
-    for l in list_strains:
-        cluster_ids += str(l[0]) + '_'  # cluster id is used for the hash id used for later
-    str_list = ""
-    if len(subtree) > 0:
-        str_list = " ".join(str(x) for x in subtree)
-    cluster_ids = cluster_ids + str_list
-    cluster_ids = cluster_ids + str(MLST)
-    filenameHash = hashlib.md5(cluster_ids.encode())
-    filename = filenameHash.hexdigest()
-    my_file = Path(r'static/cluster/' + filename + ".png")
-    command = 'C:/Program Files/R/R-4.0.4/bin/Rscript.exe'
-    # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
-    arg = '--vanilla'
+
     # data preprocessing for the R query
     all_strain_id = get_strains_MLST(db) if MLST is True else get_strain_id_name(db)
     for i in range(len(list_strains)):
@@ -131,12 +120,10 @@ def preprocess_cluster(db, list_strain_gene, subtree, MLST):
         all_strain_id = pd.merge(all_strain_id, data_id_strain, how='left', on="index")
         all_strain_id = all_strain_id.fillna(0)
 
-    subtreeSort = []
     if len(subtree) > 0:
-        subtreeSort = sortObj.radixSort(subtree)
         all_strain_id = all_strain_id.loc[all_strain_id['index'].isin(subtree)]
     all_strain_id.to_csv(r'static/cluster/cluster.csv', index=False)
-    return subtreeSort, list_strains, filename, command
+    return list_strains
 
 
 @r.get(

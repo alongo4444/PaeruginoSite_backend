@@ -5,8 +5,10 @@ from typing import List, Optional
 from pathlib import Path
 from sorting_techniques import pysort
 from starlette.responses import FileResponse
-from app.api.api_v1.routers.strains import get_offset, get_font_size, get_spacing, get_resolution, \
-    get_first_layer_offset
+from app.utilities.utilities import (
+    validate_params, get_first_layer_offset, get_font_size, get_spacing, get_offset, get_resolution, load_colors,
+    load_def_systems_names
+)
 from app.db.session import get_db
 from app.db.crud import (
     get_strain_isolation_mlst, get_strain_isolation
@@ -49,16 +51,17 @@ async def attributes(
     return [{'name': 'size', 'key': 0}, {'name': 'gc', 'key': 1}, {'name': 'cds', 'key': 2}]
 
 
-def get_query_isolation(subtreeSort):
+def get_query_isolation(subtreeSort, layer):
+    offset = get_first_layer_offset(len(subtreeSort)) if layer ==0 else get_offset(len(subtreeSort))
     return """p <- p + new_scale_colour() +
                                   geom_fruit(
-                                    data=dat1,
+                                    data=dat4,
                                     geom=geom_bar,
                                     mapping=aes(y=index, x=count, fill=isolation_type),
                                     orientation="y",
                                     width=1,
                                     pwidth= 0.08,
-                                    offset = """ + get_first_layer_offset(len(subtreeSort)) + """,
+                                    offset = """ + offset + """,
                                     stat="identity",
                                   ) + theme(
 
@@ -73,35 +76,22 @@ def get_query_isolation(subtreeSort):
 
 def get_csv_isolation():
     return """
-    dat1 <- read.csv('""" + myPath + """/isolation.csv') 
+    dat4 <- read.csv('""" + myPath + """/isolation.csv') 
     """
 
 
 def preprocess_isolation(db, subtree, MLST):
-    str_list = 'all'
-    if len(subtree) > 0:
-        str_list = str_list + " ".join(str(x) for x in subtree)
-    str_list = str_list + str(MLST)
-    filenameHash = hashlib.md5(str_list.encode())
-    filename = filenameHash.hexdigest()
-    my_file = Path(r'static/isolation/' + filename + ".png")
-    # myPath = str(Path().resolve()).replace('\\', '/') + '/static/isolation'
-    # if not os.path.exists(my_file):
-    command = 'C:/Program Files/R/R-4.0.4/bin/Rscript.exe'
-    arg = '--vanilla'
     # data preprocessing for the R query
     all_strain = get_strain_isolation_mlst(db) if MLST is True else get_strain_isolation(db)
-    subtreeSort = []
     all_strain['index'] = all_strain.index
     if len(subtree) > 0:
-        subtreeSort = sortObj.radixSort(subtree)
         all_strain = all_strain.loc[all_strain['index'].isin(subtree)]
     all_strain['count'] = 1
     all_strain['isolation_type'] = all_strain['isolation_type'].fillna("unknown")
     all_strain = all_strain[['index', 'strain', 'isolation_type', 'count']]
 
     all_strain.to_csv(r'static/isolation/isolation.csv', index=False)
-    return subtreeSort, filename, command
+
 
 @r.get(
     "/isolation_tree",

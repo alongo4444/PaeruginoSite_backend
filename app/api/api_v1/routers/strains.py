@@ -6,6 +6,19 @@ from app.db.session import get_db
 from app.db.crud import (
     get_strain_isolation_mlst, get_strains_names, get_defense_systems_of_genes, get_strains_index, get_colors_dict
 )
+from app.api.api_v1.routers.cluster import (
+    get_query_cluster, get_csv_cluster, preprocess_cluster
+)
+from app.api.api_v1.routers.isolation import (
+    get_query_isolation, get_csv_isolation, preprocess_isolation
+)
+from app.api.api_v1.routers.defense_systems import (
+    load_avg_systems_data, load_avg_systems_layer, preprocessing_avg_systems
+)
+from app.utilities.utilities import (
+    validate_params, get_first_layer_offset, get_font_size, get_spacing, get_offset, get_resolution, load_colors,
+    load_def_systems_names
+)
 import numpy as np
 from pathlib import Path
 from typing import List, Optional
@@ -14,105 +27,6 @@ import hashlib
 from pathlib import Path
 
 strains_router = r = APIRouter()
-
-
-def validate_params(systems, subtree, strains, db_systems):
-    """
-    this function gets the user parameters of systems and subtrees and keep only
-    the arguments that saved in the db. otherwise - deletes from the parameters the bad values.
-    systems - list of defence systems
-    subtree - list of strains to show
-    strains - strains that saved in the db
-    db_systems - defence systems that saved in the db
-    return:
-        systems - cleared list of defence systems after deleting bad values
-        subtree - cleared list of strains after deleting bad values
-    """
-    bad_systems = [sys.replace('-', '_').replace('|', '_').replace(' ', '_').upper() for sys in systems if
-                   sys.replace('-', '_').replace('|', '_').replace(' ', '_').upper() not in db_systems]
-
-    # systems = [sys.replace('-', '_').replace('|', '_').replace(' ', '_').upper() for sys in systems if
-    #            sys.replace('-', '_').replace('|', '_').replace(' ', '_').upper() in db_systems]
-    systems = [sys for sys in systems if sys not in bad_systems]
-    bad_subtree = [strain for strain in subtree if strain not in strains['index']]
-    # subtree = [strain for strain in subtree if strain in strains['index']]
-    subtree = [strain for strain in subtree if strain not in bad_subtree]
-    bad_subtree = [str(x) for x in bad_subtree]
-    return systems, subtree, bad_systems, bad_subtree
-
-
-def get_first_layer_offset(x):
-    """
-    this function calculate the first layer offset of the phylogenetic tree via
-    a non-linear regression function based on trial and error
-    """
-    if x > 1100 or x == 0:
-        return str(0.08)
-    return str(0.00000038 * (x ** 2) - 0.00097175 * x + 0.67964847)
-
-
-def get_font_size(x):
-    """
-    this function gets the number of strains the user want to show and return compatible font size
-    """
-    if (x == 0):
-        return str(100)
-    return str(0.06 * x + 15.958)
-
-
-def get_spacing(x):
-    """
-     this function gets the number of strains the user want to show and return compatible spacing in legend of graph
-    """
-    if (x == 0):
-        return str(2)
-    return str(0.001162 * x + 0.311)
-
-
-def get_offset(x):
-    """
-    this function gets the number of strains the user want to show and return compatible offset (spacing) between layers
-    """
-    if (x == 0):
-        return str(0.03)
-    return str(-0.0001 * x + 0.15)
-
-
-def get_resolution(x):
-    """
-    this function gets the number of strains the user want to show and return compatible graph resolution
-    """
-    if (x == 0):
-        return 300
-    return 0.183 * x + 23.672
-
-
-def load_colors():
-    """
-    this function reads the colors from the DB and save it in dictionary
-    for layer coloring
-    """
-    # Opening JSON file colors.json
-    db = next(get_db())
-    colors_dict = dict()
-    li = get_colors_dict(db)  # json.load(f)
-    colors_d = [x['color'] for x in li]
-    names = [x['label'] for x in li]
-    for (x, col) in zip(names, colors_d):
-        colors_dict[x.replace('-', '_').replace('|', '_').replace(' ',
-                                                                  '_').upper()] = col  # save systems (key) and color(value) in dictionary and return it
-    return colors_dict
-
-
-def load_def_systems_names():
-    """
-    this function reads the defense systems names from the DB and save it in dictionary
-    for layer coloring
-    """
-    def_dict = load_colors()
-    defense_names = [x for x in def_dict.keys()]
-    return list(defense_names)
-
 
 # sorting object
 sortObj = pysort.Sorting()
@@ -156,6 +70,9 @@ async def strains_indexes(
 async def phylogenetic_tree(
         systems: Optional[List[str]] = Query([]),
         subtree: Optional[List[int]] = Query([]),
+        list_strain_gene: List[str] = Query([]),
+        avg_defense_sys: bool = False,
+        isolation_type: bool = False,
         MLST: bool = False,
         db=Depends(get_db)
 ):
@@ -184,8 +101,8 @@ async def phylogenetic_tree(
         systems.sort()
     if len(subtree) > 0:
         subtreeSort = sortObj.radixSort(subtree)
-    filenameStr = "".join(systems) + "".join(str(x) for x in subtreeSort)
-    filenameStr = filenameStr + str(MLST)
+    filenameStr = "".join(systems) + "".join(str(x) for x in subtreeSort) + "".join(list_strain_gene)
+    filenameStr = filenameStr + str(MLST) + str(avg_defense_sys) + str(isolation_type)
     filenameHash = hashlib.md5(filenameStr.encode())
     filename = filenameHash.hexdigest()
 
@@ -195,9 +112,6 @@ async def phylogenetic_tree(
         command = 'C:/Program Files/R/R-4.0.4/bin/Rscript.exe'
         # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
         arg = '--vanilla'
-
-        # data preprocessing and random defense systems distribution
-        strains, systems = defense_systems_preprocessing(strains, subtree, systems)
 
         # R query build-up
         query = """
@@ -217,11 +131,15 @@ async def phylogenetic_tree(
                 tree <- keep.tip(tree,subtree)
                 """
         layer = 0
+        # data preprocessing and random defense systems distribution
+        strains, systems = defense_systems_preprocessing(strains, subtree, systems)
+
+        # load systems csv
         query = query + load_systems_data(myPath)
         if MLST is True:
             query = query + """
             # For the clade group
-                dat4 <- dat1 %>% select(c("index", "MLST"))
+                dat4 <- dat2 %>% select(c("index", "MLST"))
                 dat4 <- aggregate(.~MLST, dat4, FUN=paste, collapse=",")
                 clades <- lapply(dat4$index, function(x){unlist(strsplit(x,split=","))})
                 names(clades) <- dat4$MLST
@@ -234,13 +152,30 @@ async def phylogenetic_tree(
             query = query + """
                     p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5)
                             """
-        query = query + load_systems_layers(systems, subtreeSort, layer)
+        if len(list_strain_gene) > 0:
+            list_strains = preprocess_cluster(db, list_strain_gene, subtreeSort, MLST)
+            query = query + get_csv_cluster()
+            query = query + get_query_cluster(list_strains, list_strain_gene, subtreeSort)
+            layer = len(list_strains)  # define if defense systems are first layer or not
+        if len(systems) > 0:
+            query = query + load_systems_layers(systems, subtreeSort, layer)
+            layer += len(systems)
+        if isolation_type is True:
+            preprocess_isolation(db, subtreeSort, MLST)
+            query = query + get_csv_isolation()
+            query = query + get_query_isolation(subtreeSort, layer)
+            layer += 1
+        if avg_defense_sys is True:
+            preprocessing_avg_systems(strains, subtree)
+            query = query + load_avg_systems_data()
+            query = query + load_avg_systems_layer(subtreeSort, layer)
+            layer += 1
 
-        resolution = get_resolution(len(subtreeSort))
+        resolution = get_resolution(len(subtreeSort), layer)
         query = query + """
-            dat1$index <- as.character(dat1$index)
-            tree <- full_join(tree, dat1, by = c("label" = "index"))
-            p <- p %<+% dat1  + geom_tiplab(show.legend=FALSE,aes(label=strain))
+            dat2$index <- as.character(dat2$index)
+            tree <- full_join(tree, dat2, by = c("label" = "index"))
+            p <- p %<+% dat2  + geom_tiplab(show.legend=FALSE,aes(label=strain))
             png(""" + '"' + myPath + '/' + filename + """.png", units="cm", width=""" + str(
             resolution) + """, height=""" + str(resolution) + """, res=100)
             plot(p)
@@ -356,7 +291,7 @@ def load_systems_data(myPath):
     myPath - the path to the csv file
     """
     return """
-             dat1 <- read.csv('""" + myPath + """/Defense_sys.csv')
+             dat2 <- read.csv('""" + myPath + """/Defense_sys.csv')
             """
 
 
@@ -375,7 +310,7 @@ def load_systems_layers(systems, subtreeSort, layer):
         if layer == 0:  # first layer
             query = query + """p <- p + new_scale_colour()+
                                   geom_fruit(
-                                    data=dat1,
+                                    data=dat2,
                                     geom=geom_bar,
                                     mapping=aes(y=index,x=Defense_sys_""" + sys + """, colour=c('""" + color + """')),
                                     orientation="y",
@@ -397,7 +332,7 @@ def load_systems_layers(systems, subtreeSort, layer):
         if (layer > 0):  # higher layer
             query = query + """p <- p + new_scale_colour()+
                                   geom_fruit(
-                                    data=dat1,
+                                    data=dat2,
                                     geom=geom_bar,
                                     mapping=aes(y=index,x=Defense_sys_""" + sys + """, colour=c('""" + color + """')),
                                     orientation="y",
