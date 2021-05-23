@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import pandas as pd
+import numpy as np
 from fastapi import APIRouter, Query, Depends, Response, HTTPException
 from sorting_techniques import pysort
 from starlette.responses import FileResponse
@@ -15,6 +16,7 @@ from app.db.crud import (
     get_strains_cluster, get_strain_id_name, get_strains_MLST, get_gene_by_strain
 )
 from app.db.session import get_db
+import itertools
 
 cluster_router = r = APIRouter()
 
@@ -54,7 +56,7 @@ async def cluster_tree(
     my_file = Path(r'static/cluster/' + filename + ".png")
     myPath = str(Path().resolve()).replace('\\', '/') + '/static/cluster'
     if not os.path.exists(my_file):
-        command = 'C:/Program Files/R/R-4.0.4/bin/Rscript.exe'
+        command = 'C:/Program Files/R/R-4.0.3/bin/Rscript.exe'
         # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
         arg = '--vanilla'
         # data preprocessing for the R query
@@ -236,6 +238,8 @@ async def cluster_tree(
 '''
 this function used to get all the genes of a certain assembly of a strain  
 '''
+
+
 @r.get(
     "/get_gene_strain_id/{strain_id}",
     response_model_exclude_none=True,
@@ -266,19 +270,31 @@ async def get_gene_strain_id(
         return Response(content="No Results", status_code=400)
 
 
-# @r.get(
-#     "/get_defense_system_names/",
-#     # response_model=t.List[StrainBase],
-#     # response_model_exclude_none=True,
-# )
-# async def strains_list(
-#         response: Response,
-#         db=Depends(get_db)
-# ):
-#     """Get all strains"""
-#     ds = get_defense_system_names(db)
-#     # This is necessary for react-admin to work
-#     # response.headers["Content-Range"] = f"0-9/{len(users)}"
-#     if ds is None:
-#         return Response(content="No Results", status_code=400)
-#     return ds
+
+'''
+this function used to get a number(n) and return tuples of size n from all the genes of a certain assembly of a strain  
+'''
+
+@r.get(
+    "/get_tuple_genes/{strain_id}",
+    response_model_exclude_none=True,
+    status_code=200,
+)
+async def get_gene_strain_id(
+        strain_id,
+        response: Response,
+        combinations: int = 2,
+        db=Depends(get_db)
+):
+    
+    try:
+        if combinations < 6:
+            genes = np.array(get_gene_by_strain(db, strain_id)).ravel()
+            genes = np.random.choice(genes, 5)
+            tuples = list(itertools.combinations(genes, combinations))  # split to triplets
+            return tuples
+        else:
+            return Response(content="Number of combinations is too high!", status_code=400)
+    except Exception as e:
+        print(e)
+        return Response(content="No Results", status_code=400)

@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse
 from app.api.api_v1.routers.strains import (
     get_first_layer_offset, get_resolution
 )
+import itertools
 
 sortObj = pysort.Sorting()  # sorting object
 defense_systems_router = r = APIRouter()
@@ -30,9 +31,6 @@ def validate_params(subtree, strains):
     return subtree
 
 
-# returns all of the defense systems
-
-
 @r.get(
     "/",
     response_model_exclude_none=True,
@@ -41,6 +39,23 @@ def validate_params(subtree, strains):
 async def get_defense_systems(response: Response, db=Depends(get_db)):
     df = get_defense_systems_names(db)
     return df
+
+
+@r.get(
+    "/triplets",
+    response_model_exclude_none=True,
+    status_code=200,
+)
+async def get_triplets(response: Response, db=Depends(get_db)):
+    """
+    this function retrive all possible triplets of all defense systems within an array of tuples
+     - [(sys1,sys2,sys3),(sys1,sys2,sys4)....]
+    """
+    df = get_colors_dict(db)  # get defense systems.
+    names = [x['label'] for x in df]  # fetch systems names
+    triplets = list(itertools.combinations(names, 3))  # split to triplets
+
+    return triplets
 
 
 @r.get(
