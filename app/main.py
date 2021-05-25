@@ -12,26 +12,26 @@ from app.api.api_v1.routers.statistics import statistics_router
 
 from app.core import config
 from app.db.session import SessionLocal
-#from app.core.celery_app import celery_app
+# from app.core.celery_app import celery_app
 # from app import tasks
-#from app.api.api_v1.routers.users import users_router
-#from app.api.api_v1.routers.auth import auth_router
-#from app.core.auth import get_current_active_user
+# from app.api.api_v1.routers.users import users_router
+# from app.api.api_v1.routers.auth import auth_router
+# from app.core.auth import get_current_active_user
 from app.api.api_v1.routers.cluster import cluster_router
 
 app = FastAPI(
     title=config.PROJECT_NAME, docs_url="/api/docs", openapi_url="/api"
 )
 
-
-#app.mount("/static", StaticFiles(directory="static"), name="static")
+# app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
+    expose_headers=['bad_subtree', 'bad_systems']
 )
 
 
@@ -57,7 +57,7 @@ async def db_session_middleware(request: Request, call_next):
 #     tags=["users"],
 #     dependencies=[Depends(get_current_active_user)],
 # )
-#app.include_router(auth_router, prefix="/api", tags=["auth"])
+# app.include_router(auth_router, prefix="/api", tags=["auth"])
 app.include_router(genes_router, prefix="/api/v1/genes", tags=["genes"])
 app.include_router(strains_router, prefix="/api/v1/strains", tags=["strains"])
 app.include_router(cluster_router, prefix="/api/v1/cluster", tags=["cluster"])

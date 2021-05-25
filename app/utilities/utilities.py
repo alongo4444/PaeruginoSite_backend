@@ -19,13 +19,13 @@ def validate_params(systems, subtree, strains, db_systems):
     bad_systems = [sys.replace('-', '_').replace('|', '_').replace(' ', '_').upper() for sys in systems if
                    sys.replace('-', '_').replace('|', '_').replace(' ', '_').upper() not in db_systems]
 
-    # systems = [sys.replace('-', '_').replace('|', '_').replace(' ', '_').upper() for sys in systems if
-    #            sys.replace('-', '_').replace('|', '_').replace(' ', '_').upper() in db_systems]
-    systems = [sys for sys in systems if sys not in bad_systems]
+    systems = [sys.replace('-', '_').replace('|', '_').replace(' ', '_').upper() for sys in systems if
+               sys.replace('-', '_').replace('|', '_').replace(' ', '_').upper() in db_systems]
+    # systems = [sys for sys in systems if sys not in bad_systems]
     bad_subtree = [strain for strain in subtree if strain not in strains['index']]
-    # subtree = [strain for strain in subtree if strain in strains['index']]
-    subtree = [strain for strain in subtree if strain not in bad_subtree]
-    bad_subtree = [str(x) for x in bad_subtree]
+    subtree = [strain for strain in subtree if strain in strains['index']]
+    # subtree = [strain for strain in subtree if strain not in bad_subtree]
+    # bad_subtree = [str(x) for x in bad_subtree]
     return systems, subtree, bad_systems, bad_subtree
 
 
