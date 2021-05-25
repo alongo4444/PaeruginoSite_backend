@@ -86,11 +86,14 @@ async def phylogenetic_tree(
     the function gets 2 arrays: one for  the defense systems and needs to be shows and another to
     subtrees the user might need. if they are empty: the system will show full tree with no defense systems
     on it. this function also generate Dynamic R script in order to generate the tree.
-    systems - list of defence systems from front-end input
-    subtree - list of strains from front-end input
-    MLST - flag that indicates if MLST branch-coloring is needed (from front-end input)
-    db - and object of the DB
-    return:
+    :param systems: list of defence systems from front-end input
+    :param subtree: list of strains from front-end input
+    :param list_strain_gene: the list that contains the strain's names
+    :param avg_defense_sys: boolean variable that indicates if to show avg defense systems count for each strain.
+    :param isolation_type: boolean variable that indicates if to show isolation type for each strain.
+    :param MLST: flag that indicates if MLST branch-coloring is needed (from front-end input)
+    :param db: and object of the DB
+    :return:
         png file in case the phylogenetic tree successfully created and 400 response status otherwise.
     """
     # validate parameters using DB pre-defined strains and def-systems
@@ -294,10 +297,10 @@ def defense_systems_preprocessing(strains, subtree, systems):
     """
     preprocessing to generate random defense systems to each strain.
     this function saves the data to csv file for later use.
-    strains - dataframe of strains which saved in the db.
-    subtree - list of the user-chosen strains.
-    systems - list of the user-chosen defense systems.
-    return an updated list of the strains and the systems chosen by the user and validated by the db.
+    :param strains: dataframe of strains which saved in the db.
+    :param subtree: list of the user-chosen strains.
+    :param systems: list of the user-chosen defense systems.
+    :return: an updated list of the strains and the systems chosen by the user and validated by the db.
     """
     strains['Defense_sys'] = np.random.choice(def_sys, strains.shape[
         0])  # todo remove when defense systems are uploaded to db
@@ -313,7 +316,8 @@ def defense_systems_preprocessing(strains, subtree, systems):
 def load_systems_data(myPath):
     """
     loads the relevant csv with the information of each strain and defense system.
-    myPath - the path to the csv file
+    :param myPath: the path to the csv file
+    :return: string of R query to load the csv from file
     """
     return """
              dat2 <- read.csv('""" + myPath + """/Defense_sys.csv')
@@ -324,10 +328,11 @@ def load_systems_layers(systems, subtreeSort, layer):
     """
     this function get called if the user wants to show defense systems distribution in his phylogenetic tree.
     the function create a string that represent the defense systems distribution in R code for later tree generation
-    systems - list of the desired defense systems by the user
-    subtreeSort - the desired strains by the user.
-    layer - the current generated layer in the API function. used to know if defense systems are the first layer of
+    :param systems: list of the desired defense systems by the user
+    :param subtreeSort: the desired strains by the user.
+    :param layer: the current generated layer in the API function. used to know if defense systems are the first layer of
             the phylogenetic tree or not.
+    :return: string of the R query built from the parameters
     """
     query = ""
     for sys in systems:  # each system creates a layer of in the R code
