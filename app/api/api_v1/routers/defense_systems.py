@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Request, Depends, Response, encoders, Query, HTTPException
+from fastapi import APIRouter, Depends, Response, Query, HTTPException
 from app.db.session import get_db
 from app.db.crud import (
-    get_defense_systems_names, get_strain_isolation_mlst, get_colors_dict
+    get_defense_systems_names
 )
 from typing import List, Optional
 from pathlib import Path
@@ -19,6 +19,11 @@ defense_systems_router = r = APIRouter()
 
 
 def get_systems_counts(strains):
+    """
+    the function counts the system
+    :param strains: strains lists
+    :return: strains with counter number
+    """
     str_columns = ['index', 'strain', 'isolation_type', 'MLST']
     columns = [column for column in strains.columns if column not in str_columns]
     strains['count'] = strains.apply(lambda x: x[columns].tolist().count(1), axis=1)
@@ -26,11 +31,14 @@ def get_systems_counts(strains):
 
 
 def validate_params(subtree, strains):
+    """
+    a validation function of strains and subtrees
+    :param subtree: the subtree we are validating
+    :param strains: the strains lists
+    :return: the subtree of the validation
+    """
     subtree = [strain for strain in subtree if strain in strains['index']]
     return subtree
-
-
-# returns all of the defense systems
 
 
 @r.get(
@@ -39,6 +47,12 @@ def validate_params(subtree, strains):
     status_code=200,
 )
 async def get_defense_systems(response: Response, db=Depends(get_db)):
+    """
+    the API call returns all of the defense systems names
+    :param response: the response
+    :param db: the database connection
+    :return: a dictionary of the defense systems names
+    """
     df = get_defense_systems_names(db)
     return df
 
@@ -52,6 +66,13 @@ async def distinct_count(
         MLST: bool = False,
         db=Depends(get_db),
 ):
+    """
+    the API call creates a phylogenetic tree of the distribution of defense systems
+    :param subtree: a subtree of the phylogenetic tree
+    :param MLST: the MLST data
+    :param db: the database connection
+    :return: a phylogenetic tree in png format
+    """
     # validate parameters and R code injection
     strains = pd.read_csv("static/def_Sys/Defense_sys.csv")
     subtree = validate_params(subtree, strains)
@@ -157,5 +178,3 @@ async def distinct_count(
             raise HTTPException(status_code=404, detail=e)
     else:
         return FileResponse('static/distinct_sys/' + filename + ".png")
-
-    raise HTTPException(status_code=404, detail="e")

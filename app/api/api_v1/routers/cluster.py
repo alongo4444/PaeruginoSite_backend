@@ -39,6 +39,12 @@ async def cluster_tree(
     the function gets 2 list: one for layers of strains and genes that are needed to be shows and another to
     subtrees the user might need. if the subtree list are empty: the system will show full tree.
     this function also generate Dynamic R script in order to generate the tree.
+    :param response: the response
+    :param list_strain_gene: the list that contains the strain's names
+    :param subtree: the sub tree the api call gets from the user
+    :param MLST: the MLST parameter the users inserts
+    :param db: the db connection
+    :return: phylogenetic tree png
     """
     list_strains = get_strains_cluster(db, list_strain_gene)
     cluster_ids = ""
@@ -211,31 +217,9 @@ async def cluster_tree(
     else:
         return FileResponse('static/cluster/' + filename + ".png")
 
-    raise HTTPException(status_code=404, detail="e")
 
 
-# TODO Ido put this on # to check if this function being used
-# @r.get(
-#     "/get_gene_strain/{strain_name}",
-#     response_model_exclude_none=True,
-#     status_code=200,
-# )
-# async def get_gene_strain(
-#         strain_name,
-#         response: Response,
-#         db=Depends(get_db)
-# ):
-#     try:
-#         gene = get_genes(db)  # need to add strains name to the function
-#         list_genes = [d.get('locus_tag_copy') for d in gene]
-#         return list_genes
-#     except Exception as e:
-#         return Response(content="No Results", status_code=400)
 
-
-'''
-this function used to get all the genes of a certain assembly of a strain  
-'''
 @r.get(
     "/get_gene_strain_id/{strain_id}",
     response_model_exclude_none=True,
@@ -246,6 +230,12 @@ async def get_gene_strain_id(
         response: Response,
         db=Depends(get_db)
 ):
+    """
+    this function used to get all the genes of a certain assembly of a strain
+    :param strain_id: the strain we are looking for his genes
+    :param response: the response
+    :param db: the database connection
+    """
     try:
         gene = get_gene_by_strain(db, strain_id)
         # need to add strains name to the function
@@ -264,21 +254,3 @@ async def get_gene_strain_id(
     except Exception as e:
         print(e)
         return Response(content="No Results", status_code=400)
-
-
-# @r.get(
-#     "/get_defense_system_names/",
-#     # response_model=t.List[StrainBase],
-#     # response_model_exclude_none=True,
-# )
-# async def strains_list(
-#         response: Response,
-#         db=Depends(get_db)
-# ):
-#     """Get all strains"""
-#     ds = get_defense_system_names(db)
-#     # This is necessary for react-admin to work
-#     # response.headers["Content-Range"] = f"0-9/{len(users)}"
-#     if ds is None:
-#         return Response(content="No Results", status_code=400)
-#     return ds
