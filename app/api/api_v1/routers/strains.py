@@ -37,35 +37,40 @@ def_sys = load_def_systems_names()
 
 @r.get(
     "/",
-    # response_model=t.List[StrainBase],
-    # response_model_exclude_none=True,
 )
 async def strains_list(
         response: Response,
         db=Depends(get_db)
 ):
-    """get all the names and assembly id of all strains"""
+    """
+    get all the names and assembly id of all strains
+    :param response: the response
+    :param db: the database connection
+    :return: the strain's assembly list
+    """
     strains = get_strains_names(db)
     return strains
 
 
 @r.get(
     "/indexes",
-    # response_model=t.List[StrainBase],
-    # response_model_exclude_none=True,
 )
 async def strains_indexes(
         response: Response,
         db=Depends(get_db)
 ):
-    """Get the index and name of all strains"""
+    """
+    Get the index and name of all strains
+    :param response: the response
+    :param db: the database connection
+    :return: the strain's indexes
+    """
     strains = get_strains_index(db)
     return strains
 
 
 @r.get(
     "/phyloTree",
-    # response_model_exclude_none=True,
 )
 async def phylogenetic_tree(
         systems: Optional[List[str]] = Query([]),
@@ -212,6 +217,13 @@ async def phylogenetic_tree(
     status_code=200,
 )
 async def strain_circos_graph(strain_name, response: Response):
+    """
+    The API call returns a circos strain html file to the frontend
+    which display the distribution of defense systems on a specific strain
+    :param strain_name: the name of the strain
+    :param response: the response
+    :return: html file of the circos strain
+    """
     # the structure of the dir file will be stain_name.html and it will be stored in a specific directory.
     if strain_name:
         try:
@@ -240,6 +252,13 @@ async def strain_circos_graph(strain_name, response: Response):
     status_code=200,
 )
 async def get_genes_def_systems(strain_name, response: Response, db=Depends(get_db)):
+    """
+    the API call returns the genes of a strains (the ones that have defense systems)
+    :param strain_name: the name of the strain
+    :param response: the response
+    :param db: the database connection
+    :return: a table with the genes information
+    """
     if strain_name:
         try:
             split = strain_name.split("(")
@@ -259,6 +278,12 @@ async def get_genes_def_systems(strain_name, response: Response, db=Depends(get_
     status_code=200,
 )
 async def get_defense_systems_colors(response: Response, db=Depends(get_db)):
+    """
+    the API call returns the color of each defense system
+    :param response: the response
+    :param db: the database connection
+    :return: a dictionary of defense system and its colors
+    """
     defense_colors = get_colors_dict(db)
     if defense_colors == "No Results":
         return Response(content="No Results", status_code=400)

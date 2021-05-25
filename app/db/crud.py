@@ -1,15 +1,7 @@
-import io
-import zipfile
-import csv
-from bs4 import BeautifulSoup
-from fastapi import HTTPException, status
-from sqlalchemy.orm import Session, class_mapper, defer
+from sqlalchemy.orm import Session
 import pandas as pd
-import typing as t
 import json
 import io
-import re
-from sqlalchemy.sql import select
 
 from starlette.responses import StreamingResponse
 
@@ -20,6 +12,13 @@ from . import models, schemas
 
 
 def get_genes_download(db: Session, selectedC, selectedAS):
+    """
+    the function gets the information of the genes from the db
+    :param db: the database connection
+    :param selectedC: the selected columns
+    :param selectedAS: the selected rows names
+    :return: a table with information on the genes
+    """
     selectedC.insert(0, 'locus_tag')
 
     try:
@@ -83,6 +82,7 @@ def get_genes(db: Session):
 def get_strains_index(db: Session):
     """
     this function returns from DB a JSON with 2 keys: index of strains and name of strain.
+    :param db: the connection to the database
     """
     result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain).all()
     df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain'])
@@ -93,18 +93,12 @@ def get_strains_index(db: Session):
     return parsed
 
 
-# TODO check if their is a use for this function
-# def get_strains(db: Session):
-#     result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain, models.Strains.level,
-#                                                     models.Strains.gc, models.Strains.size,
-#                                                     models.Strains.scaffolds, models.Strains.assembly_refseq,
-#                                                     models.Strains.assembly_genbank).all()
-#     df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain', 'level', 'gc', 'size', 'scaffolds',
-#                                                                  'assembly_refseq', 'assembly'])
-#     return df_from_records
-
-
 def get_strains_names(db: Session):
+    """
+    the function gets the names of the strains
+    :param db: the connection to the db
+    :return: a dictionary of the strains names
+    """
     # Defining the SQLAlchemy-query
     strains_query = db.query(models.Genes).with_entities(models.Strains.assembly_refseq,
                                                          models.Strains.strain, )
@@ -164,11 +158,6 @@ def get_strain_isolation(db: Session):
     return df_from_records
 
 
-'''
-this get the strain id and the strain name and isolation type and mlst
-'''
-
-
 # for requirement 4.8
 def get_strain_isolation_mlst(db: Session):
     """
@@ -210,8 +199,15 @@ def get_gene_by_strain(db: Session, strain_id):
     return results
 
 
-# returns a dataframe with the genes information of the system defenses in selectedAS with the columns in selectedC.
 def get_genes_by_defense(db: Session, selectedC, selectedAS):
+    """
+    returns a dataframe with the genes information of the system defenses in
+    selectedAS with the columns in selectedC.
+    :param db: the connection to the database
+    :param selectedC: the selected columns
+    :param selectedAS: the selected defense systems
+    :return: a table of the genes with the defense systems
+    """
     # if the user didn't select any defense system, return all:
     if not selectedAS:
         ds_names = get_defense_systems_names(db)
@@ -224,8 +220,7 @@ def get_genes_by_defense(db: Session, selectedC, selectedAS):
         results = db.query(models.GenesDefenseSystems). \
             with_entities(models.GenesDefenseSystems.locus_tag). \
             filter(models.GenesDefenseSystems.defense_system.like(search)).all()
-        # my_query = "SELECT full_locus FROM \"Genes_Defence_Systems\" WHERE defense_system LIKE '%{}%'".format(s)
-        # results = db.execute(my_query).fetchall()
+
 
         for r in results:
             for t in r:
@@ -239,7 +234,6 @@ def get_genes_by_defense(db: Session, selectedC, selectedAS):
     selectedC_copy = selectedC.copy()
 
     # for idx, s in enumerate(selectedC_copy):
-    #     selectedC_copy[idx] = "\"" + s + "\""
     selectedC.insert(0, 'locus_tag')
     selectedC_copy.insert(0, "locus_tag")
     try:
@@ -248,16 +242,18 @@ def get_genes_by_defense(db: Session, selectedC, selectedAS):
         print(err)
         return pd.DataFrame()
     results = db.query(models.Genes).with_entities(*cols_attr).all()
-    # my_query = "SELECT {} FROM \"Genes\"".format(cols)  # Get all genes
-    # results = db.execute(my_query).fetchall()
     df_genes_info = pd.DataFrame(results, columns=selectedC)
     result = df_genes_ds.merge(df_genes_info)
 
     return result
 
 
-# returns a csv file of a dataframe to the frontend
 def prepare_csv_file(dafaframe):
+    """
+    the function gets a df and converts it to csv
+    :param dafaframe: the df
+    :return: a csv file
+    """
     stream = io.StringIO()
 
     dafaframe.to_csv(stream, index=False)
@@ -292,21 +288,19 @@ def get_defense_systems_of_genes(db: Session, strain_name):
     return df
 
 
-# TODO ido put this on # no usages need to check
-# def value_loc(value, df):
-#     for col in list(df):
-#         if df[col].values.find(value) != -1:
-#             return (list(df).index(col), df[col][df[col].find(value) != -1].index[0])
-
-
 def get_genes_by_cluster(db: Session, genes):
+    """
+    the function get the genes that belongs to a cluster
+    :param db: the database connection
+    :param genes: the genes names
+    :return: the information about the genes belong to a cluster
+    """
     results = db.query(models.Clusters).with_entities(models.Clusters.index,
                                                       models.Clusters.pa14,
                                                       models.Clusters.pao1,
                                                       models.Clusters.combined_index
                                                       ).all()
-    # my_query = "SELECT * FROM \"Cluster\""
-    # results = db.execute(my_query)
+
     col_names = ['index', 'pa14', 'pao1', 'combined_index']
     df_from_records = pd.DataFrame.from_records(results, columns=col_names)
     first_column = df_from_records.columns[0]
@@ -354,9 +348,7 @@ def get_genes_by_cluster(db: Session, genes):
                      'product_accession', 'nonredundant_refseq', 'name', 'protein_sequence', 'dna_sequence']
         cols_attr = (getattr(models.Genes, item) for item in col_names)
         results = db.query(models.Genes).with_entities(*cols_attr).all()
-        # cols = ', '.join(col_names)
-        # my_query = "SELECT {} FROM \"Genes\"".format(cols)
-        # results = db.execute(my_query).fetchall()
+
         df_from_records_all_genes = pd.DataFrame(results, columns=col_names)
         res = df_from_records_g.merge(df_from_records_all_genes)
 
@@ -366,22 +358,13 @@ def get_genes_by_cluster(db: Session, genes):
         res.insert(0, 'cluster_index', mid)
 
         frames.append(res)
-        # df_from_records_all_genes['locus_tag'] =  df_from_records_all_genes['attributes_x']
-        # df_from_records_all_genes['locus_tag'] = df_from_records_all_genes['locus_tag'].apply(lambda x: remove_old_locus_string(x))
-        # frames.append(df_from_records_g.merge(df_from_records_all_genes))
+
 
     if len(frames) > 0:
         return pd.concat(
             frames).drop_duplicates()  # return a single dataframe with all of the genes info in the same cluster
 
     return pd.DataFrame()
-
-
-# TODO IDO PUT THIS ON # NO USAGE
-# def remove_old_locus_string(s):
-#     if s:
-#         return s.replace('old_locus_tag=', '')
-#     return s
 
 
 # for requirement 4.5
@@ -437,7 +420,8 @@ def get_defense_systems_names(db: Session, flag=False):
 # for the requirement of 4.6
 def get_all_strains_of_defense_system(db: Session, defense_system):
     """
-    the function returns df that contains one vector of each defense system that represents is they are in the strain
+    the function returns df that contains one vector of each defense system that
+    represents is they are in the strain
     :param db: the connection to the database
     :param defense_system: the first defense system
     :return: dataframe that contains the relevant information
