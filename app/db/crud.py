@@ -5,7 +5,10 @@ import io
 
 from starlette.responses import StreamingResponse
 
-from . import models
+from . import models, schemas
+
+
+# from app.core.security import get_password_hash
 
 
 def get_genes_download(db: Session, selectedC, selectedAS):
@@ -179,7 +182,7 @@ def get_strain_id_name(db: Session):
     :return: dataframe that contains the relevant information
     """
     result = db.query(models.Strains).with_entities(models.Strains.index, models.Strains.strain).all()
-    df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain'])#, index='index'
+    df_from_records = pd.DataFrame.from_records(result, columns=['index', 'strain'])  # , index='index'
     return df_from_records
 
 

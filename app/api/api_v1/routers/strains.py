@@ -4,127 +4,29 @@ import pandas as pd
 from fastapi.responses import FileResponse
 from app.db.session import get_db
 from app.db.crud import (
-    get_strain_isolation_mlst, get_strains_names, get_defense_systems_of_genes, get_strains_index,
-    get_defense_systems_names, get_colors_dict
+    get_strain_isolation_mlst, get_strains_names, get_defense_systems_of_genes, get_strains_index, get_colors_dict
+)
+from app.api.api_v1.routers.cluster import (
+    get_query_cluster, get_csv_cluster, preprocess_cluster
+)
+from app.api.api_v1.routers.isolation import (
+    get_query_isolation, get_csv_isolation, preprocess_isolation
+)
+from app.api.api_v1.routers.defense_systems import (
+    load_avg_systems_data, load_avg_systems_layer, preprocessing_avg_systems
+)
+from app.utilities.utilities import (
+    validate_params, get_first_layer_offset, get_font_size, get_spacing, get_offset, get_resolution, load_colors,
+    load_def_systems_names
 )
 import numpy as np
+from pathlib import Path
 from typing import List, Optional
 from sorting_techniques import pysort
 import hashlib
 from pathlib import Path
 
 strains_router = r = APIRouter()
-
-
-def validate_params(systems, subtree, strains, db_systems):
-    """
-    the function validates the parameters of the phylogenetic tree
-    :param systems: the defense systems names
-    :param subtree: the subtree
-    :param strains: the strains names
-    :param db_systems: db systems
-    :return: the validated parameters
-    """
-    all_sys = [x['name'] for x in db_systems]
-    systems = [sys for sys in systems if sys in all_sys]
-    subtree = [strain for strain in subtree if strain in strains['index']]
-    return systems, subtree
-
-
-def random_color():
-    """
-    this method generate a random color in hex form
-    :return: the color
-    """
-    rand = lambda: np.random.randint(100, 255)
-    return '#%02X%02X%02X' % (rand(), rand(), rand())
-
-
-def get_first_layer_offset(x):
-    """
-    the function creates the layer offset
-    :param x: a number
-    :return: a size of first layer of offset
-    """
-    if x > 1100 or x == 0:
-        return str(0.08)
-    return str(0.00000038 * (x ** 2) - 0.00097175 * x + 0.67964847)
-
-
-def get_font_size(x):
-    """
-    this function gets the number of strains the user want to show and return compatible font size
-    :param x: the size of the image
-    :return: the font size
-    """
-    if (x == 0):
-        return str(100)
-    return str(0.06 * x + 15.958)
-
-
-def get_spacing(x):
-    """
-    this function gets the number of strains the user want to show
-    and return compatible spacing in legend of graph
-    :param x: the image size
-    :return: the spacing value
-    """
-    if (x == 0):
-        return str(2)
-    return str(0.001162 * x + 0.311)
-
-
-def get_offset(x):
-    """
-    this function gets the number of strains the user want to show and return
-    compatible offset (spacing) between layers
-    :param x: the image size
-    :return: the offset
-    """
-    if (x == 0):
-        return str(0.03)
-    return str(-0.0001 * x + 0.15)
-
-
-def get_resolution(x):
-    """
-    this function gets the number of strains the user want to
-    show and return compatible graph resolution
-    :param x: the image size
-    :return: the resolution
-    """
-    if (x == 0):
-        return 300
-    return 0.183 * x + 23.672
-
-
-def load_colors():
-    """
-    this function reads the colors from the DB and save it in dictionary
-    for layer coloring
-    :return: the colors in the db
-    """
-    # Opening JSON file colors.json
-    db = next(get_db())
-    colors_dict = dict()
-    li = get_colors_dict(db)  # json.load(f)
-    colors_d = [x['color'] for x in li]
-    names = [x['label'] for x in li]
-    for (x, col) in zip(names, colors_d):
-        colors_dict[x.upper()] = col  # save systems (key) and color(value) in dictionary and return it
-    return colors_dict
-
-
-def load_def_systems_names():
-    """
-    this function reads the defense systems names from the DB and save it in dictionary
-    for layer coloring
-    :return: the defense systems names
-    """
-    db = next(get_db())
-    defense_names = get_defense_systems_names(db, True)
-    return list(defense_names)
-
 
 # sorting object
 sortObj = pysort.Sorting()
@@ -173,25 +75,33 @@ async def strains_indexes(
 async def phylogenetic_tree(
         systems: Optional[List[str]] = Query([]),
         subtree: Optional[List[int]] = Query([]),
+        list_strain_gene: List[str] = Query([]),
+        avg_defense_sys: bool = False,
+        isolation_type: bool = False,
         MLST: bool = False,
         db=Depends(get_db)
 ):
     """
     this function handles all requests to generate Phylogenetic tree from browse page in the website.
-    the function gets 2 arrays: one for the defense systems and needs to be shows and another to
+    the function gets 2 arrays: one for  the defense systems and needs to be shows and another to
     subtrees the user might need. if they are empty: the system will show full tree with no defense systems
     on it. this function also generate Dynamic R script in order to generate the tree.
-    :param systems: the defense systems names
-    :param subtree: the subtree
-    :param MLST: the MLST parameter
-    :param db: the database connection
-    :return: the phylogenetic tree with png format
+    :param systems: list of defence systems from front-end input
+    :param subtree: list of strains from front-end input
+    :param list_strain_gene: the list that contains the strain's names
+    :param avg_defense_sys: boolean variable that indicates if to show avg defense systems count for each strain.
+    :param isolation_type: boolean variable that indicates if to show isolation type for each strain.
+    :param MLST: flag that indicates if MLST branch-coloring is needed (from front-end input)
+    :param db: and object of the DB
+    :return:
+        png file in case the phylogenetic tree successfully created and 400 response status otherwise.
     """
     # validate parameters using DB pre-defined strains and def-systems
     strains = get_strain_isolation_mlst(db)
-    db_systems = get_defense_systems_names(db)
-    systems, subtree = validate_params(systems, subtree, strains, db_systems)
-
+    db_systems = load_def_systems_names()
+    systems, subtree, bad_systems, bad_subtree = validate_params(systems, subtree, strains, db_systems)
+    headers = {"bad_systems": ",".join(bad_systems),
+               "bad_subtree": ",".join([str(x) for x in bad_subtree])}  # indicate to the user somethings is wrong
     # generating filename
     myPath = str(Path().resolve()).replace('\\', '/') + '/static/def_Sys'
     subtreeSort = []
@@ -199,8 +109,8 @@ async def phylogenetic_tree(
         systems.sort()
     if len(subtree) > 0:
         subtreeSort = sortObj.radixSort(subtree)
-    filenameStr = "".join(systems) + "".join(str(x) for x in subtreeSort)
-    filenameStr = filenameStr + str(MLST)
+    filenameStr = "".join(systems) + "".join(str(x) for x in subtreeSort) + "".join(list_strain_gene)
+    filenameStr = filenameStr + str(MLST) + str(avg_defense_sys) + str(isolation_type)
     filenameHash = hashlib.md5(filenameStr.encode())
     filename = filenameHash.hexdigest()
 
@@ -210,21 +120,10 @@ async def phylogenetic_tree(
         command = 'C:/Program Files/R/R-4.0.4/bin/Rscript.exe'
         # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
         arg = '--vanilla'
-        # data preprocessing for the R query
-        strains['Defense_sys'] = np.random.choice(def_sys, strains.shape[
-            0])  # todo remove when defense systems are uploaded to db
-        # strains = strains[['index', 'strain', 'Defense_sys']]
-        if len(subtree) > 0:
-            strains = strains.loc[strains['index'].isin(subtree)]
-            systems = strains.loc[strains['Defense_sys'].isin(systems)]['Defense_sys'].unique().tolist() if len(
-                systems) > 0 else []
-        strains = pd.get_dummies(strains, columns=["Defense_sys"])
-        strains.to_csv("static/def_Sys/Defense_sys.csv")
 
         # R query build-up
         query = """
                     library(ggtreeExtra)
-                    ##library(ggstar)
                     library(ggplot2)
                     library(ggtree)
                     library(treeio)
@@ -240,13 +139,15 @@ async def phylogenetic_tree(
                 tree <- keep.tip(tree,subtree)
                 """
         layer = 0
-        query = query + """
-             dat1 <- read.csv('""" + myPath + """/Defense_sys.csv')
-                """
+        # data preprocessing and random defense systems distribution
+        strains, systems = defense_systems_preprocessing(strains, subtree, systems)
+
+        # load systems csv
+        query = query + load_systems_data(myPath)
         if MLST is True:
             query = query + """
             # For the clade group
-                dat4 <- dat1 %>% select(c("index", "MLST"))
+                dat4 <- dat2 %>% select(c("index", "MLST"))
                 dat4 <- aggregate(.~MLST, dat4, FUN=paste, collapse=",")
                 clades <- lapply(dat4$index, function(x){unlist(strsplit(x,split=","))})
                 names(clades) <- dat4$MLST
@@ -259,58 +160,30 @@ async def phylogenetic_tree(
             query = query + """
                     p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5)
                             """
-        for sys in systems:
-            color = colors[sys]
-            if (layer == 0):
-                query = query + """p <- p + new_scale_colour()+
-                                      geom_fruit(
-                                        data=dat1,
-                                        geom=geom_bar,
-                                        mapping=aes(y=index,x=Defense_sys_""" + sys + """, colour=c('""" + color + """')),
-                                        orientation="y",
-                                        width=1,
-                                        pwidth=0.05,
-                                        offset = """ + get_first_layer_offset(len(subtreeSort)) + """,
-                                        stat="identity",
-                                        fill='""" + color + """'
-                                      ) + theme(
-                                      
-                                        legend.text = element_text(size = """ + get_font_size(len(subtreeSort)) + """),
-                                        legend.title = element_blank(),
-                                        legend.margin=margin(c(0,200,0,0)),
-                                        legend.spacing = unit(""" + get_spacing(len(subtreeSort)) + ""","cm"),
-                                        legend.spacing.x = unit(""" + get_spacing(len(subtreeSort)) + ""","cm")
-                                      )+
-                                        scale_colour_manual(values = c('""" + color + """'), labels = c('""" + sys + """'))
-                                      """
-            if (layer > 0):
-                query = query + """p <- p + new_scale_colour()+
-                                      geom_fruit(
-                                        data=dat1,
-                                        geom=geom_bar,
-                                        mapping=aes(y=index,x=Defense_sys_""" + sys + """, colour=c('""" + color + """')),
-                                        orientation="y",
-                                        width=1,
-                                        pwidth=0.05,
-                                        offset = """ + get_offset(len(subtreeSort)) + """,
-                                        stat="identity",
-                                        fill='""" + color + """'
-                                      ) + theme(
-                                        legend.margin=margin(c(0,200,0,0)),
-                                        legend.text = element_text(size = """ + get_font_size(len(subtreeSort)) + """),
-                                        legend.title = element_blank(),
-                                        legend.spacing = unit(""" + get_spacing(len(subtreeSort)) + ""","cm"),
-                                        legend.spacing.x = unit(""" + get_spacing(len(subtreeSort)) + ""","cm")
-                                      )+
-                                        scale_colour_manual(values = c('""" + color + """'), labels = c('""" + sys + """'))
-                                      """
+        if len(list_strain_gene) > 0:
+            list_strains = preprocess_cluster(db, list_strain_gene, subtreeSort, MLST)
+            query = query + get_csv_cluster()
+            query = query + get_query_cluster(list_strains, list_strain_gene, subtreeSort)
+            layer = len(list_strains)  # define if defense systems are first layer or not
+        if len(systems) > 0:
+            query = query + load_systems_layers(systems, subtreeSort, layer)
+            layer += len(systems)
+        if isolation_type is True:
+            preprocess_isolation(db, subtreeSort, MLST)
+            query = query + get_csv_isolation()
+            query = query + get_query_isolation(subtreeSort, layer)
+            layer += 1
+        if avg_defense_sys is True:
+            preprocessing_avg_systems(strains, subtree)
+            query = query + load_avg_systems_data()
+            query = query + load_avg_systems_layer(subtreeSort, layer)
             layer += 1
 
-        resolution = get_resolution(len(subtreeSort))
+        resolution = get_resolution(len(subtreeSort), layer)
         query = query + """
-            dat1$index <- as.character(dat1$index)
-            tree <- full_join(tree, dat1, by = c("label" = "index"))
-            p <- p %<+% dat1  + geom_tiplab(show.legend=FALSE,aes(label=strain))
+            dat2$index <- as.character(dat2$index)
+            tree <- full_join(tree, dat2, by = c("label" = "index"))
+            p <- p %<+% dat2  + geom_tiplab(show.legend=FALSE,aes(label=strain))
             png(""" + '"' + myPath + '/' + filename + """.png", units="cm", width=""" + str(
             resolution) + """, height=""" + str(resolution) + """, res=100)
             plot(p)
@@ -329,15 +202,15 @@ async def phylogenetic_tree(
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             output, error = p.communicate()
-            return FileResponse('static/def_Sys/' + filename + ".png")
+            return FileResponse('static/def_Sys/' + filename + ".png", headers=headers)
 
         except Exception as e:
             print("dbc2csv - Error converting file: phylo_tree.R")
             print(e)
 
-            raise HTTPException(status_code=404, detail=e)
+            raise HTTPException(status_code=400, detail=e)
     else:
-        return FileResponse('static/def_Sys/' + filename + ".png")
+        return FileResponse('static/def_Sys/' + filename + ".png", headers=headers)
 
 
 @r.get(
@@ -418,3 +291,95 @@ async def get_defense_systems_colors(response: Response, db=Depends(get_db)):
     if defense_colors == "No Results":
         return Response(content="No Results", status_code=400)
     return defense_colors
+
+
+def defense_systems_preprocessing(strains, subtree, systems):
+    """
+    preprocessing to generate random defense systems to each strain.
+    this function saves the data to csv file for later use.
+    :param strains: dataframe of strains which saved in the db.
+    :param subtree: list of the user-chosen strains.
+    :param systems: list of the user-chosen defense systems.
+    :return: an updated list of the strains and the systems chosen by the user and validated by the db.
+    """
+    strains['Defense_sys'] = np.random.choice(def_sys, strains.shape[
+        0])  # todo remove when defense systems are uploaded to db
+    if len(subtree) > 0:
+        strains = strains.loc[strains['index'].isin(subtree)]
+        systems = strains.loc[strains['Defense_sys'].isin(systems)]['Defense_sys'].unique().tolist() if len(
+            systems) > 0 else []
+    strains = pd.get_dummies(strains, columns=["Defense_sys"])
+    strains.to_csv("static/def_Sys/Defense_sys.csv")
+    return strains, systems
+
+
+def load_systems_data(myPath):
+    """
+    loads the relevant csv with the information of each strain and defense system.
+    :param myPath: the path to the csv file
+    :return: string of R query to load the csv from file
+    """
+    return """
+             dat2 <- read.csv('""" + myPath + """/Defense_sys.csv')
+            """
+
+
+def load_systems_layers(systems, subtreeSort, layer):
+    """
+    this function get called if the user wants to show defense systems distribution in his phylogenetic tree.
+    the function create a string that represent the defense systems distribution in R code for later tree generation
+    :param systems: list of the desired defense systems by the user
+    :param subtreeSort: the desired strains by the user.
+    :param layer: the current generated layer in the API function. used to know if defense systems are the first layer of
+            the phylogenetic tree or not.
+    :return: string of the R query built from the parameters
+    """
+    query = ""
+    for sys in systems:  # each system creates a layer of in the R code
+        color = colors[sys]  # load the colors of each system
+        if layer == 0:  # first layer
+            query = query + """p <- p + new_scale_colour()+
+                                  geom_fruit(
+                                    data=dat2,
+                                    geom=geom_bar,
+                                    mapping=aes(y=index,x=Defense_sys_""" + sys + """, colour=c('""" + color + """')),
+                                    orientation="y",
+                                    width=1,
+                                    pwidth=0.05,
+                                    offset = """ + get_first_layer_offset(len(subtreeSort)) + """,
+                                    stat="identity",
+                                    fill='""" + color + """'
+                                  ) + theme(
+
+                                    legend.text = element_text(size = """ + get_font_size(len(subtreeSort)) + """),
+                                    legend.title = element_blank(),
+                                    legend.margin=margin(c(0,200,0,0)),
+                                    legend.spacing = unit(""" + get_spacing(len(subtreeSort)) + ""","cm"),
+                                    legend.spacing.x = unit(""" + get_spacing(len(subtreeSort)) + ""","cm")
+                                  )+
+                                    scale_colour_manual(values = c('""" + color + """'), labels = c('""" + sys + """'))
+                                  """
+        if (layer > 0):  # higher layer
+            query = query + """p <- p + new_scale_colour()+
+                                  geom_fruit(
+                                    data=dat2,
+                                    geom=geom_bar,
+                                    mapping=aes(y=index,x=Defense_sys_""" + sys + """, colour=c('""" + color + """')),
+                                    orientation="y",
+                                    width=1,
+                                    pwidth=0.05,
+                                    offset = """ + get_offset(len(subtreeSort)) + """,
+                                    stat="identity",
+                                    fill='""" + color + """'
+                                  ) + theme(
+                                    legend.margin=margin(c(0,200,0,0)),
+                                    legend.text = element_text(size = """ + get_font_size(len(subtreeSort)) + """),
+                                    legend.title = element_blank(),
+                                    legend.spacing = unit(""" + get_spacing(len(subtreeSort)) + ""","cm"),
+                                    legend.spacing.x = unit(""" + get_spacing(len(subtreeSort)) + ""","cm")
+                                  )+
+                                    scale_colour_manual(values = c('""" + color + """'), labels = c('""" + sys + """'))
+                                  """
+        layer += 1
+
+    return query
