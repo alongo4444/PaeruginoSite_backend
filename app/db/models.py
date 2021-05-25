@@ -1,11 +1,9 @@
-from sqlalchemy import Boolean, Column, Integer, String, Text, Numeric, VARCHAR, FLOAT
-
+from sqlalchemy import Boolean, Column, Integer, String, Text, Numeric
 from .session import Base
 
 
 class User(Base):
     __tablename__ = "user"
-
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     first_name = Column(String)
@@ -17,9 +15,6 @@ class User(Base):
 
 class Genes(Base):
     __tablename__ = "Genes"
-    # SELECT index, assembly, genomic_accession, start_g, end_g, strand, symbol, locus_tag,
-    # attributes_x, product_accession, nonredundant_refseq, name, protein_sequence, dna_sequence
-    #
     locus_tag = Column("locus_tag", Text, primary_key=True, index=True, nullable=False)
     assembly = Column("assembly", Text)
     attributes_x = Column("attributes_x", Text)

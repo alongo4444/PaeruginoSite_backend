@@ -11,38 +11,41 @@ from app.db.crud import (
     get_strain_isolation_mlst,get_strain_isolation
 )
 
-from app.db.schemas import GeneBase
-
 isolation_router = r = APIRouter()
 
 sortObj = pysort.Sorting()
 
-# Returns the Isotypes names for the autocomplete at in the Frontend
+
 @r.get(
     "/",
-    #response_model=t.List[GeneBase],
     response_model_exclude_none=True,
 )
 async def isoTypes(
 ):
-    """Get all genes"""
+    """
+    the API call returns the Isolation Types names for the autocomplete at in the Frontend
+    :return: dictionary that contains isolation types
+    """
     # This is necessary for react-admin to work
     # response.headers["Content-Range"] = f"0-9/{len(users)}"
-    return [{'name': 'Clinical', 'key': 0},{'name': 'Environmental/other', 'key':1}]
+    return [{'name': 'Clinical', 'key': 0}, {'name': 'Environmental/other', 'key': 1}]
 
 
-# Returns the attributes names for the autocomplete at in the Frontend
+
 @r.get(
     "/attributes",
-    #response_model=t.List[GeneBase],
     response_model_exclude_none=True,
 )
 async def attributes(
 ):
-    """Get all genes"""
+    """
+    the API call returns the attributes names for the autocomplete at in the Frontend
+    :return: dictionary that contains attributes
+    """
     # This is necessary for react-admin to work
     # response.headers["Content-Range"] = f"0-9/{len(users)}"
-    return [{'name': 'size', 'key': 0},{'name': 'gc', 'key':1}, {'name': 'cds', 'key':2}]
+    return [{'name': 'size', 'key': 0}, {'name': 'gc', 'key': 1}, {'name': 'cds', 'key': 2}]
+
 
 @r.get(
     "/isolation_tree",
@@ -59,6 +62,10 @@ async def isolation_tree(
     the function gets 1 array: the subtrees the user might need.
     if they are empty: the system will show full tree on it.
     this function also generate Dynamic R script in order to generate the tree.
+    :param subtree: the subtree of the pylogenetic tree
+    :param MLST: the MLST data
+    :param db: the database connection
+    :return: a pylogenetic tree in png format
     """
     str_list = 'all'
     if len(subtree) > 0:
@@ -170,4 +177,4 @@ async def isolation_tree(
     else:
         return FileResponse('static/isolation/' + filename + ".png")
 
-    raise HTTPException(status_code=404, detail=e)
+    # raise HTTPException(status_code=404, detail=e)

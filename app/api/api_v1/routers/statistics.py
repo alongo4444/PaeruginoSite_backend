@@ -17,12 +17,14 @@ statistics_router = r = APIRouter()
 
 def renameDefColumn(s_name):
     """
-    renames a string from the frontend to a format which can be read from the back end. Used for functions which uses the defense systems in the StrainsDefenseSystems table.
-    s_name: the string to be reformatted.
+    renames a string from the frontend to a format which can be read from the back end.
+    Used for functions which uses the defense systems in the StrainsDefenseSystems table.
+    :param s_name: the string to be reformatted.
+    :return: transformed columns names
     """
-    res = s_name.replace("-",'')
-    res = res.replace(" ","_")
-    return res.replace("|","_").lower()
+    res = s_name.replace("-", '')
+    res = res.replace(" ", "_")
+    return res.replace("|", "_").lower()
 
 
 @r.get(
@@ -33,6 +35,13 @@ def renameDefColumn(s_name):
 async def get_correlation_between_defense_systems(response: Response,
                                                   systems: List[str] = Query([]),
                                                   db=Depends(get_db)):
+    """
+    the API call calculates the correlation between two defense systems
+    :param response: the response
+    :param systems: a list of two defense systems
+    :param db: the database connection
+    :return: a dictionary with the calculations results
+    """
 
     names_of_def_systems = get_defense_systems_names(db, True)
     if len(systems) != 2:
@@ -49,7 +58,6 @@ async def get_correlation_between_defense_systems(response: Response,
 
     df = get_defense_systems_of_two_strains(db, systems[0], systems[1])
     # calculate the distribution
-
     N = len(list(df['index']))
     K_l = df.index[df[systems[0].lower()] == 1].tolist()
     n_l = df.index[df[systems[1].lower()] == 1].tolist()
@@ -72,6 +80,14 @@ async def get_correlation_between_defense_systems(response: Response,
 async def get_correlation_between_defense_systems_and_attribute(response: Response,
                                                   system: str, category: str,
                                                   db=Depends(get_db)):
+    """
+    the API call calculates the correlation between attribute and defense system
+    :param response: the response
+    :param system: a defense system name
+    :param category: an attribute name
+    :param db: the database connection
+    :return: a dictionary with the calculations results
+    """
     correct_params = ['size', 'gc', 'cds']
     if category not in correct_params:
         return Response(content="Wrong category name", status_code=400)
@@ -123,7 +139,6 @@ def prepare_data_for_box_plot(df, category):
     min = df[category].describe().loc['min']
     max = df[category].describe().loc['max']
     all_params = [min, Q1, Q3, max, Q2]
-    # [min, Q1, Q3, max, Q2]
     return all_params
 
 
@@ -135,6 +150,14 @@ def prepare_data_for_box_plot(df, category):
 async def get_correlation_between_defense_systems_and_iso_type(response: Response,
                                                   system: str, isoType: str,
                                                   db=Depends(get_db)):
+    """
+    the API call calculates the correlation between isolation type and defense system
+    :param response: the response
+    :param system: a defense system name
+    :param isoType: the isolation type
+    :param db: the database connection
+    :return: a dictionary with the calculations results
+    """
     correct_params = ['Environmental/other', 'Clinical']
     if isoType not in correct_params:
         return Response(content="Wrong isotype", status_code=400)
@@ -171,6 +194,15 @@ async def get_correlation_between_defense_systems_and_iso_type(response: Respons
 async def get_correlation_between_defense_systems_and_cluster(response: Response,
                                                   system: str, strain: str, gene: str,
                                                   db=Depends(get_db)):
+    """
+    the API call calculates the correlation between cluster and defense system
+    :param response: the response
+    :param system: a defense system name
+    :param strain: the strain name
+    :param gene: the gene's name
+    :param db: the database connection
+    :return: a dictionary with the calculations results
+    """
     names_of_def_systems = get_defense_systems_names(db, True)
     if system not in names_of_def_systems:
         return Response(content="Defense system doesn't exist", status_code=400)
@@ -211,6 +243,15 @@ async def get_correlation_between_defense_systems_and_cluster(response: Response
 async def get_correlation_between_cluster_and_isotype(response: Response,
                                                   isoType: str, strain: str, gene: str,
                                                   db=Depends(get_db)):
+    """
+    the API call calculates the correlation between cluster and isolation type
+    :param response: the response
+    :param isoType: the isolation type name
+    :param strain: the strain name
+    :param gene: the gene's name
+    :param db: the database connection
+    :return: a dictionary with the calculations results
+    """
     correct_params = ['Environmental/other', 'Clinical']
     if isoType not in correct_params:
         return Response(content="Wrong isotype", status_code=400)

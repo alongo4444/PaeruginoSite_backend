@@ -8,17 +8,23 @@ from app.db.crud import (
     get_defense_systems_names, get_colors_dict
 )
 import numpy as np
-from pathlib import Path
 from typing import List, Optional
 from sorting_techniques import pysort
 import hashlib
-import json
 from pathlib import Path
 
 strains_router = r = APIRouter()
 
 
 def validate_params(systems, subtree, strains, db_systems):
+    """
+    the function validates the parameters of the phylogenetic tree
+    :param systems: the defense systems names
+    :param subtree: the subtree
+    :param strains: the strains names
+    :param db_systems: db systems
+    :return: the validated parameters
+    """
     all_sys = [x['name'] for x in db_systems]
     systems = [sys for sys in systems if sys in all_sys]
     subtree = [strain for strain in subtree if strain in strains['index']]
@@ -26,12 +32,20 @@ def validate_params(systems, subtree, strains, db_systems):
 
 
 def random_color():
-    ## this method generate a random color in hex form
+    """
+    this method generate a random color in hex form
+    :return: the color
+    """
     rand = lambda: np.random.randint(100, 255)
     return '#%02X%02X%02X' % (rand(), rand(), rand())
 
 
 def get_first_layer_offset(x):
+    """
+    the function creates the layer offset
+    :param x: a number
+    :return: a size of first layer of offset
+    """
     if x > 1100 or x == 0:
         return str(0.08)
     return str(0.00000038 * (x ** 2) - 0.00097175 * x + 0.67964847)
@@ -40,6 +54,8 @@ def get_first_layer_offset(x):
 def get_font_size(x):
     """
     this function gets the number of strains the user want to show and return compatible font size
+    :param x: the size of the image
+    :return: the font size
     """
     if (x == 0):
         return str(100)
@@ -48,8 +64,11 @@ def get_font_size(x):
 
 def get_spacing(x):
     """
-   this function gets the number of strains the user want to show and return compatible spacing in legend of graph
-   """
+    this function gets the number of strains the user want to show
+    and return compatible spacing in legend of graph
+    :param x: the image size
+    :return: the spacing value
+    """
     if (x == 0):
         return str(2)
     return str(0.001162 * x + 0.311)
@@ -57,8 +76,11 @@ def get_spacing(x):
 
 def get_offset(x):
     """
-       this function gets the number of strains the user want to show and return compatible offset (spacing) between layers
-       """
+    this function gets the number of strains the user want to show and return
+    compatible offset (spacing) between layers
+    :param x: the image size
+    :return: the offset
+    """
     if (x == 0):
         return str(0.03)
     return str(-0.0001 * x + 0.15)
@@ -66,8 +88,11 @@ def get_offset(x):
 
 def get_resolution(x):
     """
-           this function gets the number of strains the user want to show and return compatible graph resolution
-           """
+    this function gets the number of strains the user want to
+    show and return compatible graph resolution
+    :param x: the image size
+    :return: the resolution
+    """
     if (x == 0):
         return 300
     return 0.183 * x + 23.672
@@ -77,6 +102,7 @@ def load_colors():
     """
     this function reads the colors from the DB and save it in dictionary
     for layer coloring
+    :return: the colors in the db
     """
     # Opening JSON file colors.json
     db = next(get_db())
@@ -93,10 +119,12 @@ def load_def_systems_names():
     """
     this function reads the defense systems names from the DB and save it in dictionary
     for layer coloring
+    :return: the defense systems names
     """
     db = next(get_db())
     defense_names = get_defense_systems_names(db, True)
     return list(defense_names)
+
 
 # sorting object
 sortObj = pysort.Sorting()
@@ -107,35 +135,40 @@ def_sys = load_def_systems_names()
 
 @r.get(
     "/",
-    # response_model=t.List[StrainBase],
-    # response_model_exclude_none=True,
 )
 async def strains_list(
         response: Response,
         db=Depends(get_db)
 ):
-    """get all the names and assembly id of all strains"""
+    """
+    get all the names and assembly id of all strains
+    :param response: the response
+    :param db: the database connection
+    :return: the strain's assembly list
+    """
     strains = get_strains_names(db)
     return strains
 
 
 @r.get(
     "/indexes",
-    # response_model=t.List[StrainBase],
-    # response_model_exclude_none=True,
 )
 async def strains_indexes(
         response: Response,
         db=Depends(get_db)
 ):
-    """Get the index and name of all strains"""
+    """
+    Get the index and name of all strains
+    :param response: the response
+    :param db: the database connection
+    :return: the strain's indexes
+    """
     strains = get_strains_index(db)
     return strains
 
 
 @r.get(
     "/phyloTree",
-    # response_model_exclude_none=True,
 )
 async def phylogenetic_tree(
         systems: Optional[List[str]] = Query([]),
@@ -148,6 +181,11 @@ async def phylogenetic_tree(
     the function gets 2 arrays: one for the defense systems and needs to be shows and another to
     subtrees the user might need. if they are empty: the system will show full tree with no defense systems
     on it. this function also generate Dynamic R script in order to generate the tree.
+    :param systems: the defense systems names
+    :param subtree: the subtree
+    :param MLST: the MLST parameter
+    :param db: the database connection
+    :return: the phylogenetic tree with png format
     """
     # validate parameters using DB pre-defined strains and def-systems
     strains = get_strain_isolation_mlst(db)
@@ -301,8 +339,6 @@ async def phylogenetic_tree(
     else:
         return FileResponse('static/def_Sys/' + filename + ".png")
 
-    raise HTTPException(status_code=404, detail="e")
-
 
 @r.get(
     "/strainCircos/{strain_name}",
@@ -311,6 +347,13 @@ async def phylogenetic_tree(
     status_code=200,
 )
 async def strain_circos_graph(strain_name, response: Response):
+    """
+    The API call returns a circos strain html file to the frontend
+    which display the distribution of defense systems on a specific strain
+    :param strain_name: the name of the strain
+    :param response: the response
+    :return: html file of the circos strain
+    """
     # the structure of the dir file will be stain_name.html and it will be stored in a specific directory.
     if strain_name:
         try:
@@ -339,6 +382,13 @@ async def strain_circos_graph(strain_name, response: Response):
     status_code=200,
 )
 async def get_genes_def_systems(strain_name, response: Response, db=Depends(get_db)):
+    """
+    the API call returns the genes of a strains (the ones that have defense systems)
+    :param strain_name: the name of the strain
+    :param response: the response
+    :param db: the database connection
+    :return: a table with the genes information
+    """
     if strain_name:
         try:
             split = strain_name.split("(")
@@ -358,6 +408,12 @@ async def get_genes_def_systems(strain_name, response: Response, db=Depends(get_
     status_code=200,
 )
 async def get_defense_systems_colors(response: Response, db=Depends(get_db)):
+    """
+    the API call returns the color of each defense system
+    :param response: the response
+    :param db: the database connection
+    :return: a dictionary of defense system and its colors
+    """
     defense_colors = get_colors_dict(db)
     if defense_colors == "No Results":
         return Response(content="No Results", status_code=400)
