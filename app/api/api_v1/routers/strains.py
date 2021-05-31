@@ -29,10 +29,17 @@ def validate_params(systems, subtree, strains, db_systems):
         systems - cleared list of defence systems after deleting bad values
         subtree - cleared list of strains after deleting bad values
     """
-    all_sys = [x['name'] for x in db_systems]
-    systems = [sys for sys in systems if sys in all_sys]
+    # bad_systems = [sys.replace('-', '').replace('|', '').replace(' ', '_').upper() for sys in systems if
+    #                sys.replace('-', '').replace('|', '').replace(' ', '_').upper() not in db_systems]
+
+    systems = [sys.replace('-', '').replace('|', '').replace(' ', '_').upper() for sys in systems if
+               sys.replace('-', '').replace('|', '').replace(' ', '_').upper() in db_systems]
+    # systems = [sys for sys in systems if sys not in bad_systems]
+    # bad_subtree = [strain for strain in subtree if strain not in strains['index']]
     subtree = [strain for strain in subtree if strain in strains['index']]
-    return systems, subtree
+    # subtree = [strain for strain in subtree if strain not in bad_subtree]
+    # bad_subtree = [str(x) for x in bad_subtree]
+    return systems, subtree#, bad_systems, bad_subtree
 
 
 def get_first_layer_offset(x):
@@ -93,7 +100,8 @@ def load_colors():
     colors_d = [x['color'] for x in li]
     names = [x['label'] for x in li]
     for (x, col) in zip(names, colors_d):
-        colors_dict[x.upper()] = col  # save systems (key) and color(value) in dictionary and return it
+        colors_dict[x.replace('-', '').replace('|', '').replace(' ',
+                                                                  '_').upper()] = col  # save systems (key) and color(value) in dictionary and return it
     return colors_dict
 
 
@@ -103,7 +111,7 @@ def load_def_systems_names():
     for layer coloring
     """
     def_dict = load_colors()
-    defense_names =def_dict.keys()
+    defense_names = [x for x in def_dict.keys()]
     return list(defense_names)
 
 # sorting object
