@@ -142,7 +142,7 @@ def preprocess_cluster(db, list_strain_gene, subtree, MLST):
     return list_strains
 
 @r.get(
-    "/get_gene_strain_id/{strain_id}",
+    "/getGeneStrainId/{strain_id}",
     response_model_exclude_none=True,
     status_code=200,
 )
@@ -178,7 +178,7 @@ async def get_gene_strain_id(
 
 
 @r.get(
-    "/get_tuple_genes/{strain_id}",
+    "/getTupleGenes/{strain_id}",
     response_model_exclude_none=True,
     status_code=200,
 )

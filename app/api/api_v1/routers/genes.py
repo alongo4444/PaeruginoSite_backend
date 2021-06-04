@@ -31,7 +31,7 @@ async def genes_list(
 
 
 @r.get(
-    "/download_genes",
+    "/downloadGenes",
     response_model_exclude_none=True,
 )
 async def download_genes(
@@ -57,7 +57,7 @@ async def download_genes(
 
 
 @r.get(
-    "/genes_by_defense",
+    "/genesByDefense",
     response_model_exclude_none=True,
 )
 async def genes_by_defense(
@@ -84,7 +84,7 @@ async def genes_by_defense(
 
 
 @r.get(
-    "/genes_by_cluster",
+    "/genesByCluster",
     response_model_exclude_none=True,
 )
 async def genes_by_cluster(
