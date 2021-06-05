@@ -100,8 +100,11 @@ async def phylogenetic_tree(
     strains = get_strain_isolation_mlst(db)
     db_systems = load_def_systems_names()
     systems, subtree, bad_systems, bad_subtree = validate_params(systems, subtree, strains, db_systems)
+
+    # save bad parameters for front-end indication
     headers = {"bad_systems": ",".join(bad_systems),
                "bad_subtree": ",".join([str(x) for x in bad_subtree])}  # indicate to the user somethings is wrong
+    
     # generating filename
     myPath = str(Path().resolve()).replace('\\', '/') + '/static/def_Sys'
     subtreeSort = []
