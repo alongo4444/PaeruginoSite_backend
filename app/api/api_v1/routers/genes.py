@@ -20,9 +20,6 @@ async def genes_list(
 ):
     """
     the API call returns all of the genes in the database
-    :param response: the response
-    :param db: the database connection
-    :return: dictionary that contains of the genes
     """
     genes = get_genes(db)
     # This is necessary for react-admin to work

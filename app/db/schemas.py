@@ -2,6 +2,7 @@ from pydantic import BaseModel
 import typing as t
 from decimal import *
 
+'''
 class UserBase(BaseModel):
     email: str
     is_active: bool = True
@@ -33,6 +34,8 @@ class User(UserBase):
 
     class Config:
         orm_mode = True
+'''
+
 
 class GeneBase(BaseModel):
     locus_tag: str
@@ -56,7 +59,7 @@ class StrainBase(BaseModel):
     Assembly: str
     Strain: str
 
-
+'''
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -65,3 +68,4 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     email: str = None
     permissions: str = "user"
+'''
