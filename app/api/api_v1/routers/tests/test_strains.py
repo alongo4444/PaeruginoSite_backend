@@ -68,15 +68,16 @@ def test_check_resolution_zero():
     """
     check the resolution internal function
     """
-    assert strains.get_resolution(0) == 300
+    assert strains.get_resolution(0, 1) == 360.5
 
 
 def test_check_resolution_positive():
     """
     check the resolution internal function
     """
-    res = strains.get_resolution(300)
+    res = strains.get_resolution(300, 2)
     assert res == 0.183 * 300 + 23.672
+
 
 
 def test_check_offset_zero():
