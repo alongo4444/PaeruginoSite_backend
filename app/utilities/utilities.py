@@ -78,11 +78,9 @@ def get_resolution(x, layer):
     :param x: size of the phylogenetic subtree
     :return: resolution of the phylogenetic tree
     """
-    if (x == 0):
-        resolution = 350
-        plus_offset = resolution + resolution * 0.03 * layer
-        return plus_offset
-    return 0.183 * x + 23.672
+    if x == 0:
+        return 150
+    return -9.2456e-11 * (x ** 4) + 2.9165e-7 * (x ** 3) + -0.00032504 * (x ** 2) + 0.241398 * x
 
 
 def load_colors():
