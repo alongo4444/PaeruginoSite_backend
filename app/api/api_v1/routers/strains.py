@@ -104,7 +104,7 @@ async def phylogenetic_tree(
     # save bad parameters for front-end indication
     headers = {"bad_systems": ",".join(bad_systems),
                "bad_subtree": ",".join([str(x) for x in bad_subtree])}  # indicate to the user somethings is wrong
-    
+
     # generating filename
     myPath = str(Path().resolve()).replace('\\', '/') + '/static/def_Sys'
     subtreeSort = []
@@ -118,7 +118,7 @@ async def phylogenetic_tree(
     filename = filenameHash.hexdigest()
 
     # check if such query allready computed and return it. else, compute new given query.
-    if not os.path.exists('static/def_Sys/' + filename + ".png"):
+    if not os.path.exists('static/def_Sys/' + filename + ".svg"):
         # prepare POPEN variables needed
         command = 'C:/Program Files/R/R-4.0.4/bin/Rscript.exe'
         # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
@@ -133,6 +133,7 @@ async def phylogenetic_tree(
                     library(ggnewscale)
                     library(ape)
                     library(dplyr)
+                    library(svglite)
 
                     trfile <- system.file("extdata","our_tree.tree", package="ggtreeExtra")
                     tree <- read.tree(trfile) """
@@ -187,10 +188,12 @@ async def phylogenetic_tree(
             dat2$index <- as.character(dat2$index)
             tree <- full_join(tree, dat2, by = c("label" = "index"))
             p <- p %<+% dat2  + geom_tiplab(show.legend=FALSE,aes(label=strain))
-            png(""" + '"' + myPath + '/' + filename + """.png", units="cm", width=""" + str(
-            resolution) + """, height=""" + str(resolution) + """, res=100)
-            plot(p)
-            dev.off(0)"""
+            ggsave(file=""" + '"' + myPath + '/' + filename + """.svg", plot=p,device='svg',limitsize = FALSE,width=""" + str(
+            resolution) + """,height=""" + str(resolution) + """)"""
+        # png(""" + '"' + myPath + '/' + filename + """.png", units="cm", width=""" + str(
+        # resolution) + """, height=""" + str(resolution) + """, res=100)
+        # plot(p)
+        # dev.off(0)
 
         # for debugging purpose and error tracking
         print(query)
@@ -205,7 +208,7 @@ async def phylogenetic_tree(
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             output, error = p.communicate()
-            return FileResponse('static/def_Sys/' + filename + ".png", headers=headers)
+            return FileResponse('static/def_Sys/' + filename + ".svg", headers=headers)
 
         except Exception as e:
             print("dbc2csv - Error converting file: phylo_tree.R")
@@ -213,7 +216,7 @@ async def phylogenetic_tree(
 
             raise HTTPException(status_code=400, detail=e)
     else:
-        return FileResponse('static/def_Sys/' + filename + ".png", headers=headers)
+        return FileResponse('static/def_Sys/' + filename + ".svg", headers=headers)
 
 
 @r.get(
