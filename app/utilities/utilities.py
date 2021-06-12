@@ -34,9 +34,9 @@ def get_first_layer_offset(x):
     :param x: size of the phylogenetic subtree
     :return: offset of the first layer
     """
-    if x > 1100 or x == 0:
-        return str(0.08)
-    return str(0.00000038 * (x ** 2) - 0.00097175 * x + 0.67964847)
+    if x == 0:
+        return str(0.065)
+    return str(28.9477*(x**-0.884779))
 
 
 def get_font_size(x):
