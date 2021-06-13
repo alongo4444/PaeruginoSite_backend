@@ -68,7 +68,7 @@ def test_check_resolution_zero():
     """
     check the resolution internal function
     """
-    assert strains.get_resolution(0, 1) == 360.5
+    assert strains.get_resolution(0, 1) == 150
 
 
 def test_check_resolution_positive():
@@ -76,8 +76,8 @@ def test_check_resolution_positive():
     check the resolution internal function
     """
     res = strains.get_resolution(300, 2)
-    assert res == 0.183 * 300 + 23.672
-
+    # assert res == 0.183 * 300 + 23.672
+    assert res == -9.2456e-11 * (300 ** 4) + 2.9165e-7 * (300 ** 3) + -0.00032504 * (300 ** 2) + 0.241398 * 300
 
 
 def test_check_offset_zero():
@@ -126,18 +126,19 @@ def test_check_first_layer_offset_zero():
     """
     check the first layer offset internal function
     """
-    assert strains.get_first_layer_offset(0) in str(0.08)
+    assert strains.get_first_layer_offset(0) in str(0.065)
 
 
 def test_check_first_layer_offset_bigger():
     """
     check the first layer offset internal function
     """
-    assert strains.get_first_layer_offset(1101) in str(0.08)
+    assert strains.get_first_layer_offset(1101) in str(0.05892566886055861)
 
 
 def test_check_first_layer_offset_positive():
     """
     check the first layer offset internal function
     """
-    assert strains.get_first_layer_offset(300) in str(0.00000038 * (300 ** 2) - 0.00097175 * 300 + 0.67964847)
+    # assert strains.get_first_layer_offset(300) in str(0.00000038 * (300 ** 2) - 0.00097175 * 300 + 0.67964847)
+    assert strains.get_first_layer_offset(300) in str(28.9477*(300**-0.884779))
