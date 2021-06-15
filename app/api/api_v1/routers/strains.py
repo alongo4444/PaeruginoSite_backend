@@ -100,8 +100,11 @@ async def phylogenetic_tree(
     strains = get_strain_isolation_mlst(db)
     db_systems = load_def_systems_names()
     systems, subtree, bad_systems, bad_subtree = validate_params(systems, subtree, strains, db_systems)
+
+    # save bad parameters for front-end indication
     headers = {"bad_systems": ",".join(bad_systems),
                "bad_subtree": ",".join([str(x) for x in bad_subtree])}  # indicate to the user somethings is wrong
+
     # generating filename
     myPath = str(Path().resolve()).replace('\\', '/') + '/static/def_Sys'
     subtreeSort = []
@@ -115,7 +118,7 @@ async def phylogenetic_tree(
     filename = filenameHash.hexdigest()
 
     # check if such query allready computed and return it. else, compute new given query.
-    if not os.path.exists('static/def_Sys/' + filename + ".png"):
+    if not os.path.exists('static/def_Sys/' + filename + ".svg"):
         # prepare POPEN variables needed
         command = 'C:/Program Files/R/R-4.0.4/bin/Rscript.exe'
         # todo replace with command = 'Rscript'  # OR WITH bin FOLDER IN PATH ENV VAR
@@ -130,6 +133,7 @@ async def phylogenetic_tree(
                     library(ggnewscale)
                     library(ape)
                     library(dplyr)
+                    library(svglite)
 
                     trfile <- system.file("extdata","our_tree.tree", package="ggtreeExtra")
                     tree <- read.tree(trfile) """
@@ -160,19 +164,26 @@ async def phylogenetic_tree(
             query = query + """
                     p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5)
                             """
+        # add gene cluster layer if in parameters
         if len(list_strain_gene) > 0:
             list_strains = preprocess_cluster(db, list_strain_gene, subtreeSort, MLST)
             query = query + get_csv_cluster()
             query = query + get_query_cluster(list_strains, list_strain_gene, subtreeSort)
             layer = len(list_strains)  # define if defense systems are first layer or not
+
+        # add defense systems layers if in parameters
         if len(systems) > 0:
             query = query + load_systems_layers(systems, subtreeSort, layer)
             layer += len(systems)
+
+        # add isolation type layer if in parameters
         if isolation_type is True:
             preprocess_isolation(db, subtreeSort, MLST)
             query = query + get_csv_isolation()
             query = query + get_query_isolation(subtreeSort, layer)
             layer += 1
+
+        # add avg defense systems count layer if in parameters
         if avg_defense_sys is True:
             preprocessing_avg_systems(strains, subtree)
             query = query + load_avg_systems_data()
@@ -184,10 +195,8 @@ async def phylogenetic_tree(
             dat2$index <- as.character(dat2$index)
             tree <- full_join(tree, dat2, by = c("label" = "index"))
             p <- p %<+% dat2  + geom_tiplab(show.legend=FALSE,aes(label=strain))
-            png(""" + '"' + myPath + '/' + filename + """.png", units="cm", width=""" + str(
-            resolution) + """, height=""" + str(resolution) + """, res=100)
-            plot(p)
-            dev.off(0)"""
+            ggsave(file=""" + '"' + myPath + '/' + filename + """.svg", plot=p,device='svg',limitsize = FALSE,width=""" + str(
+            resolution) + """,height=""" + str(resolution) + """)"""
 
         # for debugging purpose and error tracking
         print(query)
@@ -202,7 +211,7 @@ async def phylogenetic_tree(
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             output, error = p.communicate()
-            return FileResponse('static/def_Sys/' + filename + ".png", headers=headers)
+            return FileResponse('static/def_Sys/' + filename + ".svg", headers=headers)
 
         except Exception as e:
             print("dbc2csv - Error converting file: phylo_tree.R")
@@ -210,7 +219,7 @@ async def phylogenetic_tree(
 
             raise HTTPException(status_code=400, detail=e)
     else:
-        return FileResponse('static/def_Sys/' + filename + ".png", headers=headers)
+        return FileResponse('static/def_Sys/' + filename + ".svg", headers=headers)
 
 
 @r.get(

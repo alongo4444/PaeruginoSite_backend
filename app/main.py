@@ -14,7 +14,8 @@ from app.db.session import SessionLocal
 from app.api.api_v1.routers.cluster import cluster_router
 
 app = FastAPI(
-    title=config.PROJECT_NAME, docs_url="/api/docs", openapi_url="/api"
+    title=config.PROJECT_NAME, docs_url="/api/docs", openapi_url="/api",
+    description="Pseudomonas Aeruginosa Web Application"
 )
 
 # app.mount("/static", StaticFiles(directory="static"), name="static")
