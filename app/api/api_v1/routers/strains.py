@@ -4,7 +4,8 @@ import pandas as pd
 from fastapi.responses import FileResponse
 from app.db.session import get_db
 from app.db.crud import (
-    get_strain_isolation_mlst, get_strains_names, get_defense_systems_of_genes, get_strains_index, get_colors_dict
+    get_strain_isolation_mlst, get_strains_names, get_defense_systems_of_genes, get_strains_index, get_colors_dict,
+    get_genes
 )
 from app.api.api_v1.routers.cluster import (
     get_query_cluster, get_csv_cluster, preprocess_cluster
@@ -99,7 +100,8 @@ async def phylogenetic_tree(
     # validate parameters using DB pre-defined strains and def-systems
     strains = get_strain_isolation_mlst(db)
     db_systems = load_def_systems_names()
-    systems, subtree, bad_systems, bad_subtree = validate_params(systems, subtree, strains, db_systems)
+    db_genes = get_genes(db)
+    systems, subtree, bad_systems, bad_subtree, list_strain_gene, bad_strains, bad_genes = validate_params(systems, subtree, strains, list_strain_gene, db_systems, db_genes)
 
     # save bad parameters for front-end indication
     headers = {"bad_systems": ",".join(bad_systems),

@@ -4,18 +4,33 @@ from app.db.crud import (
 )
 
 
-def validate_params(systems, subtree, strains, db_systems):
+def validate_params(systems, subtree, strains, list_strain_gene, db_systems, db_genes):
     """
     this function gets the user parameters of systems and subtrees and keep only
     the arguments that saved in the db. otherwise - deletes from the parameters the bad values.
     :param systems: list of defence systems
     :param subtree: list of strains to show
     :param strains: strains that saved in the db
+    :param list_strain_gene: the list of strains and genes for the cluster
     :param db_systems: defence systems that saved in the db
+    :param db_systems: genes that saved in the db
     :return:
         systems - cleared list of defence systems after deleting bad values
         subtree - cleared list of strains after deleting bad values
     """
+    bad_strains = []
+    bad_genes = []
+    for strain_gene in list_strain_gene:
+        split_str = strain_gene.split('-')
+        flag = False
+        if split_str[0] not in strains['strain'] and split_str[0] != 'PA14':
+            bad_strains.append(split_str[0])
+            flag = True
+        if not any(d['locus_tag'] == split_str[1] for d in db_genes):
+            bad_genes.append(split_str[1])
+            flag = True
+        if flag:
+            list_strain_gene.remove(strain_gene)
     bad_systems = [sys.replace('-', '_').replace('|', '_').replace(' ', '_').upper() for sys in systems if
                    sys.replace('-', '_').replace('|', '_').replace(' ', '_').upper() not in db_systems]
 
@@ -24,7 +39,7 @@ def validate_params(systems, subtree, strains, db_systems):
     bad_subtree = [strain for strain in subtree if strain not in strains['index']]
     subtree = [strain for strain in subtree if strain in strains['index']]
 
-    return systems, subtree, bad_systems, bad_subtree
+    return systems, subtree, bad_systems, bad_subtree, list_strain_gene, bad_strains, bad_genes
 
 
 def get_first_layer_offset(x):
