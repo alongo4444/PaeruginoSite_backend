@@ -164,19 +164,26 @@ async def phylogenetic_tree(
             query = query + """
                     p <- ggtree(tree, layout="circular",branch.length = 'none', open.angle = 10, size = 0.5)
                             """
+        # add gene cluster layer if in parameters
         if len(list_strain_gene) > 0:
             list_strains = preprocess_cluster(db, list_strain_gene, subtreeSort, MLST)
             query = query + get_csv_cluster()
             query = query + get_query_cluster(list_strains, list_strain_gene, subtreeSort)
             layer = len(list_strains)  # define if defense systems are first layer or not
+
+        # add defense systems layers if in parameters
         if len(systems) > 0:
             query = query + load_systems_layers(systems, subtreeSort, layer)
             layer += len(systems)
+
+        # add isolation type layer if in parameters
         if isolation_type is True:
             preprocess_isolation(db, subtreeSort, MLST)
             query = query + get_csv_isolation()
             query = query + get_query_isolation(subtreeSort, layer)
             layer += 1
+
+        # add avg defense systems count layer if in parameters
         if avg_defense_sys is True:
             preprocessing_avg_systems(strains, subtree)
             query = query + load_avg_systems_data()
@@ -190,10 +197,6 @@ async def phylogenetic_tree(
             p <- p %<+% dat2  + geom_tiplab(show.legend=FALSE,aes(label=strain))
             ggsave(file=""" + '"' + myPath + '/' + filename + """.svg", plot=p,device='svg',limitsize = FALSE,width=""" + str(
             resolution) + """,height=""" + str(resolution) + """)"""
-        # png(""" + '"' + myPath + '/' + filename + """.png", units="cm", width=""" + str(
-        # resolution) + """, height=""" + str(resolution) + """, res=100)
-        # plot(p)
-        # dev.off(0)
 
         # for debugging purpose and error tracking
         print(query)
